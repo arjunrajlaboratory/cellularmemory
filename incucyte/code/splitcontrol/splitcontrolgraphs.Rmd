@@ -1,0 +1,95 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(R.utils)
+
+```
+
+```{r}
+nosplit <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/colonysplitcontrol/nosplit_3dpre.csv", sep = ",", header = TRUE)
+postsplit <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/colonysplitcontrol/postsplit.csv", sep = ",", header = TRUE)
+postsplitsparse <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/colonysplitcontrol/postsplit_b.csv", sep = ",", header = TRUE)
+
+lo <- nosplit %>% dplyr::filter(XY == 1) %>% group_by(Time) %>% summarise(count = n()) %>% mutate(treatment = "lo")
+lotohi <- nosplit %>% dplyr::filter(XY == 2) %>% group_by(Time) %>% summarise(count = n()) %>% mutate(treatment = "lotohi")
+hi <- nosplit %>% dplyr::filter(XY == 3) %>% group_by(Time) %>% summarise(count = n()) %>% mutate(treatment = "hi")
+losplitlo <- postsplitsparse %>% dplyr::filter(XY == 1) %>% group_by(Time) %>% summarise(count = n()) %>% mutate(treatment = "losplitlo")
+losplithi <- postsplitsparse %>% dplyr::filter(XY == 2) %>% group_by(Time) %>% summarise(count = n()) %>% mutate(treatment = "losplithi")
+hisplithi <- postsplit %>% dplyr::filter(XY == 3) %>% group_by(Time) %>% summarise(count = n()) %>% mutate(treatment = "hisplithi")
+
+graphdata <- bind_rows(lo, lotohi, hi, losplitlo, losplithi, hisplithi)
+
+ggplot(graphdata, aes(x = Time, y = count, color = treatment)) +
+  geom_line()+
+  labs(title = "split graph") +
+  xlim(0,13) +
+  theme_minimal()
+
+
+```
+```{r}
+p <- ggplot(graphdata, aes(x = Time, y = count, color = treatment)) +
+  geom_line() +
+  labs(title = "split graph") +
+  xlim(0, 13) +
+  theme_minimal()
+
+# Save the plot as a PDF
+ggsave(filename = "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/incucyte/colonysplitcontrol/rawcounts.pdf", plot = p, device = "pdf", width = 8, height = 6)
+```
+
+```{r}
+graphdata <- graphdata %>%
+  group_by(treatment) %>%
+  mutate(normalized = count / count[Time == 1])
+
+q <- ggplot(graphdata, aes(x = Time, y = normalized, color = treatment)) +
+  geom_line() +
+  labs(title = "split graph") +
+  xlim(0, 13) +
+  theme_minimal()
+
+q
+```
+```{r}
+
+# Save the plot as a PDF
+ggsave(filename = "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/incucyte/colonysplitcontrol/tzeronorm.pdf", plot = q, device = "pdf", width = 8, height = 6)
+
+```
+
+```{r}
+graphdata$treatment <- factor(graphdata$treatment, levels = c('lo', 'hi', 'lotohi', 'losplitlo', 'hisplithi', 'losplithi'))
+
+
+r <- ggplot(graphdata, aes(x = Time, y = count, color = treatment)) +
+  geom_line() +
+  facet_wrap(~treatment) +
+  labs(title = "split graph") +
+  xlim(0, 13) +
+  ylim(0,50000) +
+  theme_minimal()
+
+r
+```
+```{r}
+
+# Save the plot as a PDF
+ggsave(filename = "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/incucyte/colonysplitcontrol/facetcount.pdf", plot = r, device = "pdf", width = 8, height = 6)
+
+```
+
+
+
+

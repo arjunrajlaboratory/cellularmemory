@@ -1,0 +1,122 @@
+---
+title: "ap1i"
+output: html_document
+date: "2024-06-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(car)
+library(nlme)
+library(emmeans)
+library(ggplot2)
+
+outputdirectory <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/incucyte/plx/"
+```
+
+```{r}
+#import data
+exp1154 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/plx/VID1154.csv", header = TRUE)
+exp1155 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/plx/VID1155.csv", header = TRUE)
+exp1173 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/plx/VID1173.csv", header = TRUE)
+exp1346 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/plx/VID1346.csv", header = TRUE)
+
+exp1154 <- exp1154 %>% dplyr::group_by(Name) %>% summarize(colony = n())
+exp1155 <- exp1155 %>% dplyr::group_by(Name) %>% summarize(colony = n())
+exp1154 <- dplyr::bind_rows(exp1154, exp1155)
+exp1154$exp <- "exp1154"
+
+exp1173 <- exp1173 %>% dplyr::group_by(Name) %>% summarize(colony = n())
+exp1173$exp <- "exp1173"
+
+exp1346 <- exp1346 %>% dplyr::group_by(Name) %>% summarize(colony = n())
+exp1346$exp <- "exp1346"
+
+data <- dplyr::bind_rows(exp1173, exp1346) %>% bind_rows(exp1154)
+
+```
+
+```{r}
+#plot data
+
+# Calculate the average colony for each Name
+average_data <- data %>%
+  group_by(Name) %>%
+  summarize(average_colony = mean(colony))
+
+# Create the plot
+plot <- ggplot(data, aes(x = Name, y = colony, fill = exp)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), width = 0.8, alpha = 0.7) +
+  geom_bar(data = average_data, aes(x = Name, y = average_colony, fill = Name), stat = "identity", position = position_dodge(width = 0.9), width = 0.8, alpha = 0.4) +
+  labs(title = "Bar Graph of Colonies by Name and Experiment",
+       x = "Name",
+       y = "Colony",
+       fill = "Experiment") +
+  theme_minimal()
+  
+
+  ggsave(filename = paste0(outputdirectory, "n3.pdf"), plot = plot, width = 12, height = 8, device = "pdf")
+  
+plot  
+
+```
+
+
+```{r}
+#get stats
+
+library(nlme)
+library(emmeans)
+library(car)
+
+
+# Perform Repeated Measures ANOVA on non-normalized data
+model <- lme(colony ~ Name, random = ~1 | exp, data = data)
+summary(model)
+
+# Check for normality of residuals
+residuals <- residuals(model)
+shapiro.test(residuals)
+
+# Check for homogeneity of variances
+leveneTest(colony ~ Name, data = data)
+
+# Perform pairwise comparisons using emmeans
+emmeans_results <- emmeans(model, pairwise ~ Name, adjust = "holm")
+print(emmeans_results)
+
+```
+
+
+```{r}
+data_wide <- spread(data, Name, colony)
+print(data_wide)
+
+conditions <- unique(data$Name)
+num_conditions <- length(conditions)
+
+p_values <- matrix(NA, nrow = num_conditions, ncol = num_conditions)
+rownames(p_values) <- colnames(p_values) <- conditions
+
+for (i in 1:(num_conditions - 1)) {
+  for (j in (i + 1):num_conditions) {
+    cond_i <- conditions[i]
+    cond_j <- conditions[j]
+    
+    data_i <- data$colony[data$Name == cond_i]
+    data_j <- data$colony[data$Name == cond_j]
+    
+    test_result <- t.test(data_i, data_j, paired = TRUE)
+    p_values[i, j] <- p_values[j, i] <- test_result$p.value
+  }
+}
+
+```
+
+
+

@@ -1,0 +1,131 @@
+---
+title: "ap1i"
+output: html_document
+date: "2024-06-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(car)
+library(nlme)
+library(emmeans)
+library(ggplot2)
+
+outputdirectory <- "/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/incucyte/jnkin8/"
+```
+
+```{r}
+#import data
+exp1516 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/jnkin8/VID1516.csv", header = TRUE)
+
+exp2536 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/jnkin8/VID2536.csv", header = TRUE)
+
+exp2112 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/jnkin8/VID2112.csv", header = TRUE)
+
+
+exp1516 <- exp1516 %>% dplyr::group_by(Name) %>% summarize(colony = n())
+exp1516$exp <- "exp1516"
+
+exp2536 <- exp2536 %>% dplyr::group_by(Name) %>% summarize(colony = n())
+exp2536$exp <- "exp2536"
+
+exp2112 <- exp2112 %>% dplyr::group_by(Name) %>% summarize(colony = n())
+exp2112$exp <- "exp2112"
+
+data <- dplyr::bind_rows(exp1516, exp2536) %>% bind_rows(exp2112) # %>% bind_rows(exp2925) 
+
+
+# since exp 2536 did not have any colonies for hi2 (all cells died = no resistant colony formation), we are adding the value of "0"
+new_row <- data.frame(
+  Name = "hi2",
+  colony = 0,
+  exp = "exp2536"
+)
+
+# Add the new row to the data frame
+data <- rbind(data, new_row)
+
+```
+
+```{r}
+#plot data
+
+# Calculate the average colony for each Name
+average_data <- data %>%
+  group_by(Name) %>%
+  summarize(average_colony = mean(colony))
+
+# Create the plot
+plot <- ggplot(data, aes(x = Name, y = colony, fill = exp)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), width = 0.8, alpha = 0.7) +
+  geom_bar(data = average_data, aes(x = Name, y = average_colony, fill = Name), stat = "identity", position = position_dodge(width = 0.9), width = 0.8, alpha = 0.4) +
+  labs(title = "Bar Graph of Colonies by Name and Experiment",
+       x = "Name",
+       y = "Colony",
+       fill = "Experiment") +
+  theme_minimal()
+  
+
+  ggsave(filename = paste0(outputdirectory, "n3.pdf"), plot = plot, width = 12, height = 8, device = "pdf")
+  
+plot  
+
+```
+
+
+```{r}
+#get stats
+
+library(nlme)
+library(emmeans)
+library(car)
+
+
+# Perform Repeated Measures ANOVA on non-normalized data
+model <- lme(colony ~ Name, random = ~1 | exp, data = data)
+summary(model)
+
+# Check for normality of residuals
+residuals <- residuals(model)
+shapiro.test(residuals)
+
+# Check for homogeneity of variances
+leveneTest(colony ~ Name, data = data)
+
+# Perform pairwise comparisons using emmeans
+emmeans_results <- emmeans(model, pairwise ~ Name, adjust = "holm")
+print(emmeans_results)
+
+```
+
+```{r}
+
+data_wide <- spread(data, Name, colony)
+print(data_wide)
+
+conditions <- unique(data$Name)
+num_conditions <- length(conditions)
+
+p_values <- matrix(NA, nrow = num_conditions, ncol = num_conditions)
+rownames(p_values) <- colnames(p_values) <- conditions
+
+for (i in 1:(num_conditions - 1)) {
+  for (j in (i + 1):num_conditions) {
+    cond_i <- conditions[i]
+    cond_j <- conditions[j]
+    
+    data_i <- data$colony[data$Name == cond_i]
+    data_j <- data$colony[data$Name == cond_j]
+    
+    test_result <- t.test(data_i, data_j, paired = TRUE)
+    p_values[i, j] <- p_values[j, i] <- test_result$p.value
+  }
+}
+```
+
+
