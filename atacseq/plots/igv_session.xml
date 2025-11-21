@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Session genome="hg19" locus="chr6:35686901-35713071" nextAutoscaleGroup="2" version="8">
+    <Resources>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J15_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J7_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J3_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J6_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J14_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J11_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J16_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J4_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J12 _openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J1_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J5_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J2_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J9_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J13_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J10_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J17_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J18_openRegionRPM.bw" type="bw"/>
+        <Resource path="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J8_openRegionRPM.bw" type="bw"/>
+    </Resources>
+    <Panel height="736" name="DataPanel" width="1938">
+        <Track attributeKey="Sorted_J1_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J1_openRegionRPM.bw" name="Sorted_J1_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J13_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J13_openRegionRPM.bw" name="Sorted_J13_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J3_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="153,153,153" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J3_openRegionRPM.bw" name="Sorted_J3_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J16_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="153,153,153" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J16_openRegionRPM.bw" name="Sorted_J16_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J11_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="45,138,138" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J11_openRegionRPM.bw" name="Sorted_J11_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J15_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="45,138,138" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J15_openRegionRPM.bw" name="Sorted_J15_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J4_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="151,185,185" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J4_openRegionRPM.bw" name="Sorted_J4_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J10_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="151,185,185" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J10_openRegionRPM.bw" name="Sorted_J10_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J6_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="255,204,0" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J6_openRegionRPM.bw" name="Sorted_J6_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J14_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="255,204,0" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J14_openRegionRPM.bw" name="Sorted_J14_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J7_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="18,86,57" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J7_openRegionRPM.bw" name="Sorted_J7_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J18_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="18,86,57" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J18_openRegionRPM.bw" name="Sorted_J18_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J2_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="102,0,102" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J2_openRegionRPM.bw" name="Sorted_J2_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J8_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="102,0,102" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J8_openRegionRPM.bw" name="Sorted_J8_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J5_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="0,51,153" colorScale="ContinuousColorScale;0.0;-1.4988010832439613E-15;0.0;2.7715444564819336;247,247,6;255,255,255;0,0,178" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J5_openRegionRPM.bw" name="Sorted_J5_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J12 _openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="0,51,153" colorScale="ContinuousColorScale;0.0;-1.4988010832439613E-15;0.0;2.7715444564819336;247,247,6;255,255,255;0,0,178" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J12 _openRegionRPM.bw" name="Sorted_J12 _openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J9_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="77,44,159" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J9_openRegionRPM.bw" name="Sorted_J9_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+        <Track attributeKey="Sorted_J17_openRegionRPM.bw" autoScale="false" autoscaleGroup="1" clazz="org.broad.igv.track.DataSourceTrack" color="77,44,159" fontSize="10" id="/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/atacseq/atac_bw/Sorted_J17_openRegionRPM.bw" name="Sorted_J17_openRegionRPM.bw" renderer="BAR_CHART" visible="true" windowFunction="none">
+            <DataRange baseline="0.0" drawBaseline="true" flipAxis="false" maximum="2.7715445" minimum="-1.4988011E-15" type="LINEAR"/>
+        </Track>
+    </Panel>
+    <Panel height="221" name="FeaturePanel" width="1938">
+        <Track attributeKey="Reference sequence" clazz="org.broad.igv.track.SequenceTrack" fontSize="10" id="Reference sequence" name="Reference sequence" sequenceTranslationStrandValue="+" shouldShowTranslation="false" visible="true"/>
+        <Track attributeKey="Refseq Genes" clazz="org.broad.igv.track.FeatureTrack" colorScale="ContinuousColorScale;0.0;414.0;255,255,255;0,0,178" fontSize="10" groupByStrand="false" id="https://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/ncbiRefSeq.txt.gz" name="Refseq Genes" visible="true"/>
+        <Track attributeKey="TGACTCA" clazz="org.broad.igv.track.MotifTrack" displayMode="SQUISHED" featureVisibilityWindow="10000000" fontSize="10" groupByStrand="false" id="TGACTCA" name="TGACTCA" pattern="TGACTCA" strand="+" visible="true"/>
+        <Track attributeKey=" Negative" clazz="org.broad.igv.track.MotifTrack" color="255,0,0" displayMode="SQUISHED" featureVisibilityWindow="10000000" fontSize="10" groupByStrand="false" id=" Negative" name=" Negative" pattern="TGACTCA" strand="-" visible="true"/>
+        <Track attributeKey="GNACANNNTGTNC" clazz="org.broad.igv.track.MotifTrack" displayMode="SQUISHED" featureVisibilityWindow="10000000" fontSize="10" groupByStrand="false" id="GNACANNNTGTNC" name="GNACANNNTGTNC" pattern="G.ACA...TGT.C" strand="+" visible="true"/>
+        <Track attributeKey="GNACANNNTGTNC Negative" clazz="org.broad.igv.track.MotifTrack" color="255,0,0" displayMode="SQUISHED" featureVisibilityWindow="10000000" fontSize="10" groupByStrand="false" id="GNACANNNTGTNC Negative" name="GNACANNNTGTNC Negative" pattern="G.ACA...TGT.C" strand="-" visible="true"/>
+    </Panel>
+    <PanelLayout dividerFractions="0.7655601659751037"/>
+    <Regions>
+        <Region chromosome="chr6" end="35701492" start="35694152"/>
+    </Regions>
+    <HiddenAttributes>
+        <Attribute name="DATA FILE"/>
+        <Attribute name="DATA TYPE"/>
+        <Attribute name="NAME"/>
+    </HiddenAttributes>
+</Session>

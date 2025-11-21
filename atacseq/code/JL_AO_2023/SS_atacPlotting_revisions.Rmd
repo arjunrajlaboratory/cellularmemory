@@ -1,0 +1,547 @@
+---
+title: "SydneyNatureScript"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+load("../extractedData/SS_myCounts.RData")
+output_dir <- "/Users/ptrav/Documents/Research/RajLab/Analysis/2024-01JessATACanalysis/plots"
+
+library(DESeq2)
+atacDDS <- DESeqDataSetFromMatrix(assay(filtered_myCounts), metaData, ~sample.actual, rowRanges = rowRanges(myCounts))
+atacDDS <- DESeq(atacDDS)
+
+# Creates heatmap for all the peaks for all of the samples
+peakRanges <- rowRanges(filtered_myCounts)
+library(BSgenome.Hsapiens.UCSC.hg19)
+peakRangesCentered <- resize(peakRanges, fix = "center", width = 100)
+peakSeqs <- getSeq(BSgenome.Hsapiens.UCSC.hg19, peakRangesCentered)
+names(peakSeqs) <- as.character(peakRangesCentered)
+
+library(JASPAR2020)
+library(TFBSTools)
+library(motifmatchr)
+library(chromVAR)
+library(pheatmap)
+
+
+opts <- list()
+opts[["tax_group"]] <- "vertebrates"
+opts[["collection"]] <- "CORE"
+opts[["all_versions"]] <- FALSE
+motifsToScan <- getMatrixSet(JASPAR2020, opts)
+
+subset_myCounts <- filtered_myCounts[rowSums(assay(filtered_myCounts)) > 5, ]
+subset_myCounts <- addGCBias(subset_myCounts, genome = BSgenome.Hsapiens.UCSC.hg19)
+motif_ix <- matchMotifs(motifsToScan, subset_myCounts, genome = BSgenome.Hsapiens.UCSC.hg19)
+
+include_rows <- atacDDS$sample.actual %in% c("neg")
+control_myCounts <- subset_myCounts[,include_rows]
+
+# Compute deviations using the derived expectations
+deviations <- computeDeviations(object = subset_myCounts, 
+                                annotations = motif_ix, 
+                                background_peaks = getBackgroundPeaks(subset_myCounts), 
+                                expectation = computeExpectations(control_myCounts))
+
+variability_Known <- computeVariability(deviations)
+devZscores <- deviationScores(deviations)
+variability_Known <- variability_Known[order(variability_Known$p_value), ]
+topVariable <- variability_Known[1:50, ]
+devTop <- merge(topVariable[, 1, drop = FALSE], devZscores, by = 0)
+
+devToPlot <- as.matrix(devTop[, -c(1:2)])
+rownames(devToPlot) <- devTop[, 2]
+name_mapping <- setNames(metaData$sample.actual, metaData$bamName)
+
+# Add replicate information to the column names of devToPlot
+replicate_mapping <- setNames(metaData$replicate, metaData$bamName)
+replicate_column <- replicate_mapping[colnames(devToPlot)]
+colnames(devToPlot) <- paste0(name_mapping[colnames(devToPlot)], "_(", replicate_column, ")")
+desired_order <- c("neg_(p9)","neg_(p14)","mix_noDrug_(p9)","mix_noDrug_(p14)",
+                   "mix_week1_(p9)","mix_week1_(p14)","mix_week4_(p9)","mix_week4_(p14)",
+                   "EGFR_noDrug_(p9)","EGFR_noDrug_(p14)","EGFR_week1_(p9)","EGFR_week1_(p14)",
+                   "EGFR_week4_(p9)","EGFR_week4_(p14)")
+
+devToPlot <- devToPlot[, desired_order] 
+custom_palette <- colorRampPalette(c("#707071","#ECAB21","#C23B1C")) (50)
+# pheatmap(devToPlot, cluster_cols = FALSE)
+
+pdf("../plots/allpeaks_heatmap.pdf", width = 10, height = 10)
+pheatmap(devToPlot, cluster_cols = FALSE,color=custom_palette)
+dev.off()
+```
+
+```{r}
+conditionNames <- atacDDS$sample.actual
+Group <- factor(conditionNames)
+colData(filtered_myCounts) <- DataFrame(data.frame(Group, row.names = colnames(filtered_myCounts)))
+threshold <- 2 
+
+condition1 <- levels(conditionNames)[7] #neg
+condition2 <- levels(conditionNames)[1] #EGFR_noDrug aka primed
+contrast_name <- paste(condition1, condition2, sep = "_vs_")
+contrast <- c("sample.actual", condition1, condition2)
+myRes_primevnull <- results(atacDDS,contrast = contrast, format = "GRanges")
+primedOpened_peaks <- myRes_primevnull[myRes_primevnull$log2FoldChange > threshold]
+primedClosed_peaks <- myRes_primevnull[myRes_primevnull$log2FoldChange < -threshold]
+
+condition1 <- levels(conditionNames)[7] #neg
+condition2 <- levels(conditionNames)[2] #EGFR_week1 aka adapted
+contrast_name <- paste(condition1, condition2, sep = "_vs_")
+contrast <- c("sample.actual", condition1, condition2)
+myRes_adaptedvnull <- results(atacDDS, contrast = contrast, format = "GRanges")
+adaptedOpened_peaks <- myRes_adaptedvnull[myRes_adaptedvnull$log2FoldChange > threshold]
+adaptedClosed_peaks <- myRes_adaptedvnull[myRes_adaptedvnull$log2FoldChange < -threshold]
+
+condition1 <- levels(conditionNames)[7] #neg
+condition2 <- levels(conditionNames)[3] #EGFR_week4 aka resistant
+contrast_name <- paste(condition1, condition2, sep = "_vs_")
+contrast <- c("sample.actual", condition1, condition2)
+myRes_resistantvnull <- results(atacDDS, contrast = contrast, format = "GRanges")
+resistantOpened_peaks <- myRes_resistantvnull[myRes_resistantvnull$log2FoldChange > threshold]
+resistantClosed_peaks <- myRes_resistantvnull[myRes_resistantvnull$log2FoldChange < -threshold]
+
+# Find the overlap between the two GRanges objects
+overlap_peaks <- intersect(primedOpened_peaks, adaptedOpened_peaks)
+
+# Specific peaks in primedOpened_peaks but not in adaptedOpened_peaks
+unique_prime_peaks <- setdiff(primedOpened_peaks, adaptedOpened_peaks)
+
+# Specific peaks in adaptedOpened_peaks but not in primedOpened_peaks
+unique_adapted_peaks <- setdiff(adaptedOpened_peaks, primedOpened_peaks)
+
+
+# Add prefixes to the metadata columns to avoid name conflicts
+mcols(myRes_primevnull) <- setNames(mcols(myRes_primevnull), paste0("prime_", names(mcols(myRes_primevnull))))
+mcols(myRes_adaptedvnull) <- setNames(mcols(myRes_adaptedvnull), paste0("adapted_", names(mcols(myRes_adaptedvnull))))
+mcols(myRes_resistantvnull) <- setNames(mcols(myRes_resistantvnull), paste0("resistant_", names(mcols(myRes_resistantvnull))))
+
+# Combine all the metadata columns
+combined_metadata <- cbind(
+  mcols(myRes_primevnull),
+  mcols(myRes_adaptedvnull),
+  mcols(myRes_resistantvnull)
+)
+
+# Create a new GRanges object with combined metadata
+collapsed_granges <- GRanges(
+  seqnames = seqnames(myRes_primevnull),
+  ranges = ranges(myRes_primevnull),
+  strand = strand(myRes_primevnull),
+  mcols = combined_metadata
+)
+
+```
+
+```{r}
+library(ggvenn)
+
+create_ggplot_triple_venn <- function() {
+  
+  # Convert to coordinate strings
+  primed_coords <- paste0(seqnames(primedOpened_peaks), ":", 
+                         start(primedOpened_peaks), "-", 
+                         end(primedOpened_peaks))
+  adapted_coords <- paste0(seqnames(adaptedOpened_peaks), ":", 
+                          start(adaptedOpened_peaks), "-", 
+                          end(adaptedOpened_peaks))
+  resistant_coords <- paste0(seqnames(resistantOpened_peaks), ":", 
+                            start(resistantOpened_peaks), "-", 
+                            end(resistantOpened_peaks))
+  
+  # Create the peak sets list
+  peak_sets <- list(
+    "Primed" = primed_coords,
+    "Adapted" = adapted_coords, 
+    "Resistant" = resistant_coords
+  )
+  
+  # Create ggplot triple Venn diagram
+  venn_gg <- ggvenn(peak_sets,
+                    fill_color = c("lightblue", "lightcoral", "lightgreen"),
+                    fill_alpha = 0.5,
+                    stroke_color = "black", 
+                    stroke_size = 1,
+                    text_size = 3.5,
+                    set_name_size = 4) +
+    ggtitle("Accessible Peaks Overlap: Primed → Adapted → Resistant") +
+    theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+  
+  return(venn_gg)
+}
+
+# Create ggplot version
+triple_venn_ggplot <- create_ggplot_triple_venn()
+triple_venn_ggplot
+
+ggsave(filename = file.path(output_dir, "accessible_triple_venn_diagram.pdf"), 
+       plot = triple_venn_ggplot, 
+       width = 8, 
+       height = 6, 
+       units = "in", 
+       dpi = 300) 
+
+cat("Venn diagram saved to:", file.path(output_dir, "accessible_triple_venn_diagram.pdf"), "\n")
+```
+```{r}
+library(ggvenn)
+
+create_ggplot_triple_venn <- function() {
+  
+  # Convert to coordinate strings
+  primed_coords <- paste0(seqnames(primedClosed_peaks), ":", 
+                         start(primedClosed_peaks), "-", 
+                         end(primedClosed_peaks))
+  adapted_coords <- paste0(seqnames(adaptedClosed_peaks), ":", 
+                          start(adaptedClosed_peaks), "-", 
+                          end(adaptedClosed_peaks))
+  resistant_coords <- paste0(seqnames(resistantClosed_peaks), ":", 
+                            start(resistantClosed_peaks), "-", 
+                            end(resistantClosed_peaks))
+  
+  # Create the peak sets list
+  peak_sets <- list(
+    "Primed" = primed_coords,
+    "Adapted" = adapted_coords, 
+    "Resistant" = resistant_coords
+  )
+  
+  # Create ggplot triple Venn diagram
+  venn_gg <- ggvenn(peak_sets,
+                    fill_color = c("lightblue", "lightcoral", "lightgreen"),
+                    fill_alpha = 0.5,
+                    stroke_color = "black", 
+                    stroke_size = 1,
+                    text_size = 3.5,
+                    set_name_size = 4) +
+    ggtitle("Inaccessible Peaks Overlap: Primed → Adapted → Resistant") +
+    theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
+  
+  return(venn_gg)
+}
+
+# Create ggplot version
+triple_venn_ggplot <- create_ggplot_triple_venn()
+triple_venn_ggplot
+
+ggsave(filename = file.path(output_dir, "inaccessible_triple_venn_diagram.pdf"), 
+       plot = triple_venn_ggplot, 
+       width = 8, 
+       height = 6, 
+       units = "in", 
+       dpi = 300) 
+
+cat("Venn diagram saved to:", file.path(output_dir, "inaccessible_triple_venn_diagram.pdf"), "\n")
+```
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+
+# Alternative function that works directly with DESeq2 results
+create_volcano_plot_direct <- function(results_granges, title) {
+  
+  # Extract log2FoldChange and adjusted p-values directly from GRanges
+  log2FC <- mcols(results_granges)$log2FoldChange
+  padj <- mcols(results_granges)$padj
+  
+  # Create data frame for plotting
+  volcano_data <- data.frame(
+    log2FoldChange = log2FC,
+    padj = padj
+  )
+  
+  # Remove rows with NA values
+  volcano_data <- volcano_data[complete.cases(volcano_data), ]
+  
+  # Calculate -log10(padj) after cleaning
+  volcano_data$neg_log10_padj <- -log10(volcano_data$padj)
+  
+  # Define significance thresholds
+  fc_threshold <- 1
+  p_threshold <- 0.05
+  
+  # Create color column based on thresholds
+  volcano_data$color <- ifelse(
+    abs(volcano_data$log2FoldChange) > fc_threshold & volcano_data$padj < p_threshold,
+    ifelse(volcano_data$log2FoldChange > fc_threshold, "Increased", "Decreased"),
+    "Not Significant"
+  )
+  
+  # Count peaks above threshold
+  increased_peaks <- sum(volcano_data$log2FoldChange > fc_threshold & volcano_data$padj < p_threshold, na.rm = TRUE)
+  decreased_peaks <- sum(volcano_data$log2FoldChange < -fc_threshold & volcano_data$padj < p_threshold, na.rm = TRUE)
+  total_peaks <- nrow(volcano_data)
+  
+  # Create the plot
+  p <- ggplot(volcano_data, aes(x = log2FoldChange, y = neg_log10_padj, color = color)) +
+    geom_point(alpha = 0.6, size = 0.8) +
+    scale_color_manual(values = c("Increased" = "red", "Decreased" = "blue", "Not Significant" = "grey70")) +
+    geom_vline(xintercept = c(-fc_threshold, fc_threshold), linetype = "dashed", alpha = 0.5) +
+    geom_hline(yintercept = -log10(p_threshold), linetype = "dashed", alpha = 0.5) +
+    labs(
+      title = title,
+      x = "Log2 Fold Change",
+      y = "-Log10(Adjusted P-value)",
+      color = "Significance"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5, size = 12, face = "bold"),
+      legend.position = "bottom",
+      axis.text = element_text(size = 10),
+      axis.title = element_text(size = 11)
+    ) +
+    # Add text annotations for peak counts
+    annotate("text", x = Inf, y = Inf, 
+             label = paste0("Increased: ", increased_peaks, " peaks\n",
+                           "Decreased: ", decreased_peaks, " peaks\n",
+                           "Total: ", total_peaks, " peaks"), 
+             hjust = 1.1, vjust = 1.1, size = 3, color = "black",
+             bbox = list(boxstyle = "round,pad=0.3", facecolor = "white", alpha = 0.8))
+  
+  return(list(plot = p, increased = increased_peaks, decreased = decreased_peaks))
+}
+
+# Create volcano plots using your existing results objects
+# Volcano plot for Primed vs Neg
+volcano_primed <- create_volcano_plot_direct(
+  myRes_primevnull, 
+  "Primed vs Neg\n(EGFR no drug vs Neg)"
+)
+
+# Volcano plot for Adapted vs Neg  
+volcano_adapted <- create_volcano_plot_direct(
+  myRes_adaptedvnull, 
+  "Adapted vs Neg\n(EGFR week 1 vs Neg)"
+)
+
+# Volcano plot for Resistant vs Neg
+volcano_resistant <- create_volcano_plot_direct(
+  myRes_resistantvnull, 
+  "Resistant vs Neg\n(EGFR week 4 vs Neg)"
+)
+
+# Arrange plots in a grid
+combined_plot <- grid.arrange(
+  volcano_primed$plot, 
+  volcano_adapted$plot, 
+  volcano_resistant$plot,
+  ncol = 3,
+  top = "Differential Accessibility Analysis: Peak Changes Across Conditions"
+)
+
+# Print summary statistics
+cat("=== SUMMARY OF PEAK CHANGES (Log2FC > 1, padj < 0.05) ===\n")
+cat("Primed vs Neg:\n")
+cat("  Increased peaks:", volcano_primed$increased, "\n")
+cat("  Decreased peaks:", volcano_primed$decreased, "\n\n")
+
+cat("Adapted vs Neg:\n")
+cat("  Increased peaks:", volcano_adapted$increased, "\n")
+cat("  Decreased peaks:", volcano_adapted$decreased, "\n\n")
+
+cat("Resistant vs Neg:\n")
+cat("  Increased peaks:", volcano_resistant$increased, "\n")
+cat("  Decreased peaks:", volcano_resistant$decreased, "\n\n")
+# 
+# # Save the combined plot
+# ggsave("../plots/volcano_plots_combined.pdf", combined_plot, width = 15, height = 5)
+# ggsave("../plots/volcano_plots_combined.png", combined_plot, width = 15, height = 5, dpi = 300)
+# 
+# # Optional: Create individual plots with larger size
+# ggsave("../plots/volcano_primed_vs_neg.pdf", volcano_primed$plot, width = 6, height = 5)
+# ggsave("../plots/volcano_adapted_vs_neg.pdf", volcano_adapted$plot, width = 6, height = 5)  
+# ggsave("../plots/volcano_resistant_vs_neg.pdf", volcano_resistant$plot, width = 6, height = 5)
+```
+
+```{r}
+cat("primedOpened peaks:", length(primedOpened_peaks), "\n")
+cat("adaptedOpened peaks:", length(adaptedOpened_peaks), "\n")
+cat("resistantOpened peaks:", length(resistantOpened_peaks), "\n")
+cat("unique_adapted_peaks:", length(unique_adapted_peaks), "\n")
+cat("overlap peaks:", length(overlap_peaks), "\n")
+```
+```{r}
+library(ggplot2)
+
+# Extract log2FoldChange from each dataset
+prime_log2FC <- mcols(myRes_primevnull)$prime_log2FoldChange
+adapted_log2FC <- mcols(myRes_adaptedvnull)$adapted_log2FoldChange
+resistant_log2FC <- mcols(myRes_resistantvnull)$resistant_log2FoldChange
+
+# Create a data frame for plotting
+pairwise_data <- data.frame(
+  prime_vs_adapted_x = prime_log2FC,
+  prime_vs_adapted_y = adapted_log2FC,
+  prime_vs_resistant_x = prime_log2FC,
+  prime_vs_resistant_y = resistant_log2FC,
+  adapted_vs_resistant_x = adapted_log2FC,
+  adapted_vs_resistant_y = resistant_log2FC
+)
+
+# Gather data for ggplot
+plot_data <- rbind(
+  data.frame(x = pairwise_data$prime_vs_adapted_x, y = pairwise_data$prime_vs_adapted_y, Comparison = "Prime vs Adapted"),
+  data.frame(x = pairwise_data$prime_vs_resistant_x, y = pairwise_data$prime_vs_resistant_y, Comparison = "Prime vs Resistant"),
+  data.frame(x = pairwise_data$adapted_vs_resistant_x, y = pairwise_data$adapted_vs_resistant_y, Comparison = "Adapted vs Resistant")
+)
+
+# Create scatter plots with ggplot
+ggplot(plot_data, aes(x = x, y = y)) +
+  geom_density_2d(aes(color = Comparison), contour_var = "density", alpha = 0.8) +
+  facet_wrap(~Comparison, scales = "free") +
+  labs(
+    title = "Density Plots of Log2 Fold Changes",
+    x = "Log2 Fold Change (X)",
+    y = "Log2 Fold Change (Y)"
+  ) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "green", "red"))
+
+```
+
+```{r}
+# Load necessary libraries
+library(pheatmap)
+library(RColorBrewer)
+
+generate_and_save_heatmap <- function(peak_granges, collapsed_granges, title, filename, output_dir) {
+  
+  # Step 1: Find overlaps between peak_granges and collapsed_granges
+  overlaps <- findOverlaps(peak_granges, collapsed_granges)
+  
+  # Step 2: Extract log2 fold change values for primed, adapted, and resistant for overlapping peaks
+  log2FC_primed <- collapsed_granges$mcols.prime_log2FoldChange[subjectHits(overlaps)]
+  log2FC_adapted <- collapsed_granges$mcols.adapted_log2FoldChange[subjectHits(overlaps)]
+  log2FC_resistant <- collapsed_granges$mcols.resistant_log2FoldChange[subjectHits(overlaps)]
+  
+  # Step 2: Create a data frame for plotting
+  heatmap_data <- data.frame(
+    Primed = log2FC_primed,
+    Adapted = log2FC_adapted,
+    Resistant = log2FC_resistant
+  )
+  
+  # Step 3: Create and save heatmap
+  pheatmap(
+    heatmap_data,
+    scale = "none",  # No scaling
+    color = rev(colorRampPalette(brewer.pal(9, "RdBu"))(100)),  # Color scale
+    cluster_rows = FALSE, # Disable clustering of rows
+    cluster_cols = FALSE, # Disable clustering of columns
+    show_rownames = FALSE,  # Show row names
+    show_colnames = TRUE,   # Show column names (conditions)
+    main = title,
+    filename = file.path(output_dir, filename),  # Save to file
+    width = 8,
+    height = 6,
+    units = "in",
+    dpi = 300
+  )
+}
+
+# Example usage for your peak sets:
+
+# Generate heatmap for overlap peaks (adapted and primed overlap peaks)
+generate_and_save_heatmap(overlap_peaks, collapsed_granges, 
+                         "Heatmap of Log2 Fold Changes for Overlap Peaks",
+                         "overlap_peaks_heatmap.pdf", output_dir)
+
+generate_and_save_heatmap(unique_adapted_peaks, collapsed_granges, 
+                         "Heatmap of Log2 Fold Changes for Unique Adapted Peaks",
+                         "unique_adapted_peaks_heatmap.pdf", output_dir)
+
+generate_and_save_heatmap(unique_prime_peaks, collapsed_granges, 
+                         "Heatmap of Log2 Fold Changes for Unique Prime Peaks",
+                         "unique_prime_peaks_heatmap.pdf", output_dir)
+
+generate_and_save_heatmap(resistantOpened_peaks, collapsed_granges, 
+                         "Heatmap of Log2 Fold Changes for Resistant Peaks",
+                         "resistant_peaks_heatmap.pdf", output_dir)
+```
+
+```{r}
+library(ChIPseeker)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+MacsCalls_Anno <- annotatePeak(overlap_peaks, TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene)
+plotAnnoPie(MacsCalls_Anno)
+# Extract distance to TSS
+distances_to_TSS <- MacsCalls_Anno@anno$distanceToTSS
+
+# View summary statistics
+summary(distances_to_TSS)
+
+# Plot distribution of distances
+ggplot(data.frame(distance = distances_to_TSS), aes(x = distance)) +
+  geom_histogram(bins = 50, fill = "lightblue", color = "black", alpha = 0.7)+
+  scale_x_log10() +
+  labs(title = "Distance to Nearest TSS - Overlap Peaks",
+       x = "Distance to TSS (bp)",
+       y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+MacsCalls_Anno <- annotatePeak(unique_adapted_peaks, TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene)
+plotAnnoPie(MacsCalls_Anno)
+
+MacsCalls_Anno <- annotatePeak(unique_prime_peaks, TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene)
+plotAnnoPie(MacsCalls_Anno)
+
+MacsCalls_Anno <- annotatePeak(myRes_primevnull, TxDb = TxDb.Hsapiens.UCSC.hg19.knownGene)
+plotAnnoPie(MacsCalls_Anno)
+
+```
+
+```{r}
+conditionNames <- atacDDS$sample.actual
+Group <- factor(conditionNames)
+colData(filtered_myCounts) <- DataFrame(data.frame(Group, row.names = colnames(filtered_myCounts)))
+threshold <- -2  # Changed to negative threshold for "lower" peaks
+
+# Find peaks that are LOWER in primed vs neg
+condition1 <- levels(conditionNames)[7] #neg
+condition2 <- levels(conditionNames)[1] #EGFR_noDrug aka primed
+contrast_name <- paste(condition1, condition2, sep = "_vs_")
+contrast <- c("sample.actual", condition1, condition2)
+myRes_primevneg <- results(atacDDS, contrast = contrast, format = "GRanges")
+primedLower_peaks <- myRes_primevneg[myRes_primevneg$log2FoldChange < threshold]
+
+# Find peaks that are LOWER in resistant vs neg
+condition1 <- levels(conditionNames)[7] #neg
+condition2 <- levels(conditionNames)[3] #EGFR_week4 aka resistant
+contrast_name <- paste(condition1, condition2, sep = "_vs_")
+contrast <- c("sample.actual", condition1, condition2)
+myRes_resistantvneg <- results(atacDDS, contrast = contrast, format = "GRanges")
+resistantLower_peaks <- myRes_resistantvneg[myRes_resistantvneg$log2FoldChange < threshold]
+
+# Find the overlap between primed-lower and resistant-lower peaks
+overlap_lower_peaks <- intersect(primedLower_peaks, resistantLower_peaks)
+
+# Calculate what percentage of primed-lower peaks are also lower in resistant
+total_primed_lower <- length(primedLower_peaks)
+overlap_count <- length(overlap_lower_peaks)
+percentage_overlap <- (overlap_count / total_primed_lower) * 100
+
+# Print results
+cat("Total peaks lower in primed vs neg:", total_primed_lower, "\n")
+cat("Total peaks lower in resistant vs neg:", length(resistantLower_peaks), "\n")
+cat("Peaks that are lower in both primed and resistant vs neg:", overlap_count, "\n")
+cat("Percentage of primed-lower peaks that are also lower in resistant:", 
+    round(percentage_overlap, 2), "%\n")
+
+# Optional: Also find peaks unique to each condition
+unique_primed_lower <- setdiff(primedLower_peaks, resistantLower_peaks)
+unique_resistant_lower <- setdiff(resistantLower_peaks, primedLower_peaks)
+
+cat("Peaks lower only in primed (not in resistant):", length(unique_primed_lower), "\n")
+cat("Peaks lower only in resistant (not in primed):", length(unique_resistant_lower), "\n")
+```
+
+``` {r}
+
+```
