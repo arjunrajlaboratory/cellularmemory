@@ -1,0 +1,271 @@
+---
+title: "R Notebook"
+output: html_notebook
+
+---
+
+```{r, warning=FALSE}
+library(viridis)
+library(tidyverse)
+library(data.table)
+library(scales)
+library(dplyr)
+library(gridExtra)
+library(ggplot2)
+```
+
+```{r, warning=FALSE}
+datac2 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/VID2925_C2_recalc.csv")
+
+startenddatac2 <- datac2
+startenddatac2 <- data.frame(lapply(startenddatac2[,c(2:55)], function(x) as.numeric(x)))
+
+startenddatac2 <- startenddatac2 %>% mutate(
+    greencolony = startenddatac2$green.red.Colony.two.color.intensity...Channel.1...MeanColonyIntensity - green.red.Colony.two.color.intensity...Channel.1...MedianIntensity,
+    redcolony =  startenddatac2$green.red.Colony.two.color.intensity...Channel.2...MeanColonyIntensity - green.red.Colony.two.color.intensity...Channel.2...MedianIntensity,
+    greencell = startenddatac2$green.intensity.measurements...MeanIntensity - startenddatac2$green.annulus...MedianIntensity,
+    redcell = startenddatac2$red.intensity.measurements...MeanIntensity - startenddatac2$red.annulus...MedianIntensity,
+    parentID = startenddatac2$colony.Blob.Parent.and.child...parentId,
+    childID = startenddatac2$colony.Blob.Parent.and.child...childId,
+    annotationID = startenddatac2$colony.Blob.Parent.and.child...annotationId
+  )
+
+
+lineageinfo <- startenddatac2 %>% dplyr::select(lineage2 = childID, lineage1 = annotationID)
+
+lineageinfo <- data.frame(lapply(lineageinfo, function(x) as.numeric(x)))
+lineageinfo <- na.omit(lineageinfo)
+lineageinfo <- data.table(lineageinfo)
+lineageinfo[, lineageId := .I]
+
+lineagedata_longc2 <- lineageinfo %>%
+  pivot_longer(
+    cols = -lineageId,  # Columns to make longer, except 'id'
+    names_to = "generation",  # New column for the original column names
+    values_to = "annotationID"  # New column for the values
+  )
+
+filteredDatac2 <- startenddatac2 %>% dplyr::select(annotationID, greencolony, redcolony, greencell, redcell)
+filteredDatac2$annotationID <- as.numeric(filteredDatac2$annotationID)
+
+lineagedata_longc2 <- left_join(lineagedata_longc2, filteredDatac2, by = "annotationID")
+lineagedata_longc2$lineageId <- factor(lineagedata_longc2$lineageId)
+
+
+```
+
+
+```{r}
+dataa2 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/VID2925_a2_recalc.csv")
+
+startenddataa2 <- dataa2
+startenddataa2 <- data.frame(lapply(startenddataa2[,c(2:49)], function(x) as.numeric(x)))
+
+startenddataa2 <- startenddataa2 %>% mutate(
+    greencolony = startenddataa2$green.red.Colony.two.color.intensity...Channel.1...MeanColonyIntensity - green.red.Colony.two.color.intensity...Channel.1...MedianIntensity,
+    redcolony =  startenddataa2$green.red.Colony.two.color.intensity...Channel.2...MeanColonyIntensity - green.red.Colony.two.color.intensity...Channel.2...MedianIntensity,
+    greencell = startenddataa2$green...MeanIntensity - startenddataa2$green.Annulus.intensity.measurements...MedianIntensity,
+    redcell = startenddataa2$red...MeanIntensity - startenddataa2$red.Annulus.intensity.measurements...MedianIntensity,
+    parentID = line.Blob.Parent.and.child...parentId,
+    childID = line.Blob.Parent.and.child...childId,
+    annotationID = line.Blob.Parent.and.child...annotationId
+  )
+
+
+lineageinfo <- startenddataa2 %>% dplyr::select(lineage2 = childID, lineage1 = annotationID)
+
+lineageinfo <- data.frame(lapply(lineageinfo, function(x) as.numeric(x)))
+lineageinfo <- na.omit(lineageinfo)
+lineageinfo <- data.table(lineageinfo)
+lineageinfo[, lineageId := .I]
+
+lineagedata_longa2 <- lineageinfo %>%
+  pivot_longer(
+    cols = -lineageId,  # Columns to make longer, except 'id'
+    names_to = "generation",  # New column for the original column names
+    values_to = "annotationID"  # New column for the values
+  )
+
+filteredDataa2 <- startenddataa2 %>% dplyr::select(annotationID, greencolony, redcolony, greencell, redcell)
+filteredDataa2$annotationID <- as.numeric(filteredDataa2$annotationID)
+
+lineagedata_longa2 <- left_join(lineagedata_longa2, filteredDataa2, by = "annotationID")
+lineagedata_longa2$lineageId <- factor(lineagedata_longa2$lineageId)
+
+```
+
+
+```{r}
+datab2 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/VID2925_b2_recalc.csv")
+
+startenddatab2 <- datab2
+startenddatab2 <- data.frame(lapply(startenddatab2[,c(2:49)], function(x) as.numeric(x)))
+
+startenddatab2 <- startenddatab2 %>% mutate(
+    greencolony = startenddatab2$green.red.two.color.intensity...Channel.1...MeanColonyIntensity
+    - startenddatab2$green.red.two.color.intensity...Channel.1...MedianIntensity,
+    redcolony =  startenddatab2$green.red.two.color.intensity...Channel.2...MeanColonyIntensity
+    - startenddatab2$green.red.two.color.intensity...Channel.2...MedianIntensity,
+    greencell = startenddatab2$green.blob.intensity.measurements...MeanIntensity - startenddatab2$green.annulus.intensity.measurements...MedianIntensity,
+    redcell = startenddatab2$red.blob.intensity.measurements...MeanIntensity - startenddatab2$red.annulus.intensity.measurements...MedianIntensity,
+    parentID = startenddatab2$colony.Blob.Parent.and.child...parentId,
+    childID = startenddatab2$colony.Blob.Parent.and.child...childId,
+    annotationID = startenddatab2$colony.Blob.Parent.and.child...annotationId
+  )
+
+
+
+lineageinfo <- startenddatab2 %>% dplyr::select(lineage2 = childID, lineage1 = annotationID)
+
+lineageinfo <- data.frame(lapply(lineageinfo, function(x) as.numeric(x)))
+lineageinfo <- na.omit(lineageinfo)
+lineageinfo <- data.table(lineageinfo)
+lineageinfo[, lineageId := .I]
+
+lineagedata_longb2 <- lineageinfo %>%
+  pivot_longer(
+    cols = -lineageId,  # Columns to make longer, except 'id'
+    names_to = "generation",  # New column for the original column names
+    values_to = "annotationID"  # New column for the values
+  )
+
+filteredDatab2 <- startenddatab2 %>% dplyr::select(annotationID, greencolony, redcolony, greencell, redcell)
+filteredDatab2$annotationID <- as.numeric(filteredDatab2$annotationID)
+
+lineagedata_longb2 <- left_join(lineagedata_longb2, filteredDatab2, by = "annotationID")
+lineagedata_longb2$lineageId <- factor(lineagedata_longb2$lineageId)
+
+
+```
+
+```{r}
+startingcell <- dplyr::filter(lineagedata_longb2, generation == "lineage1") %>% dplyr::select(lineageId, generation, annotationID, greencell,redcell)
+
+startingcell$redgreenfc = startingcell$redcell/startingcell$greencell
+greenlim = quantile(startingcell$redgreenfc,.25)
+redlim = quantile(startingcell$redgreenfc,.75)
+
+startingcell$color <- ifelse(startingcell$redgreenfc > redlim, "red",
+                     ifelse(startingcell$redgreenfc < greenlim, "green", "yellow"))
+```
+
+```{r}
+cellplotjnk <- ggplot(startingcell, aes(x = redcell, y = greencell, colour = color)) +
+  geom_point(aes(color = color), size = 1, alpha = 0.9) +
+  labs(#title = "Red vs. Generation for Each Lineage",
+       x = "Red",
+       y = "Green",
+       color = "Lineage") +
+  theme_minimal() +
+  xlim(0,140) +
+  ylim(0,420) +
+  geom_abline(slope = 1/greenlim, linetype = "dotted", color = "darkgreen") +
+  geom_abline(slope = 1/redlim, linetype = "dotted", color = "darkred")
+
+
+cellfilejnk <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/startendscatter/cellplot-jnk.pdf"
+ggsave(cellfilejnk, plot = cellplotjnk, width = 10, height = 10, dpi = 300, useDingbats = FALSE)
+
+
+cellplotjnk
+
+```
+
+```{r}
+lineageidcolor <- dplyr::select(startingcell, lineageId,color)
+
+finalcolony <- dplyr::filter(lineagedata_longb2, generation == "lineage2") %>% select(lineageId, generation, annotationID, greencolony,redcolony)
+finalcolony <- left_join(finalcolony,lineageidcolor,by = "lineageId")
+
+colonyplot <- ggplot(finalcolony, aes(x = redcolony, y = greencolony, colour = color)) +
+  geom_point(aes(color = color), size = 1, alpha = 0.9) +
+  labs(#title = "Red vs. Generation for Each Lineage",
+       x = "Red",
+       y = "Green",
+       color = "Lineage") +
+  theme_minimal() +
+  xlim(0,140) +
+  ylim(0,420)
+
+
+colonyfilejnk <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/startendscatter/colonyplot-jnk.pdf"
+ggsave(colonyfilejnk, plot = colonyplot, width = 10, height = 10, dpi = 300, useDingbats = FALSE)
+
+colonyplot
+```
+
+```{r}
+
+a2 <- lineagedata_longa2 %>% mutate(lineageId = paste0(lineageId, "_a2"))
+c2 <- lineagedata_longc2 %>% mutate(lineageId = paste0(lineageId, "_c2"))
+
+# Combine dataframes
+combined_ctrl <- bind_rows(a2, c2)
+
+startingcell <- dplyr::filter(combined_ctrl, generation == "lineage1") %>% dplyr::select(lineageId, generation, annotationID, greencell,redcell)
+
+startingcell$redgreenfc = startingcell$redcell/startingcell$greencell
+greenlim = quantile(startingcell$redgreenfc,.25)
+redlim = quantile(startingcell$redgreenfc,.75)
+
+startingcell$color <- ifelse(startingcell$redgreenfc > redlim, "red",
+                     ifelse(startingcell$redgreenfc < greenlim, "green", "yellow"))
+```
+
+```{r}
+cellplot <- ggplot(startingcell, aes(x = redcell, y = greencell, colour = color)) +
+  geom_point(aes(color = color), size = 1, alpha = 0.9) +
+  labs(#title = "Red vs. Generation for Each Lineage",
+       x = "Red",
+       y = "Green",
+       color = "Lineage") +
+  theme_minimal() +
+  xlim(0,140) +
+  ylim(0,420) +
+  geom_abline(slope = 1/greenlim, linetype = "dotted", color = "darkgreen") +
+  geom_abline(slope = 1/redlim, linetype = "dotted", color = "darkred")
+
+cellfile <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/startendscatter/cellplot.pdf"
+ggsave(cellfile, plot = cellplot, width = 10, height = 10, dpi = 300, useDingbats = FALSE)
+
+
+cellplot
+```
+```{r}
+lineageidcolor <- dplyr::select(startingcell, lineageId,color)
+
+finalcolony <- dplyr::filter(combined_ctrl, generation == "lineage2") %>% dplyr::select(lineageId, generation, annotationID, greencolony,redcolony)
+finalcolony <- left_join(finalcolony,lineageidcolor,by = "lineageId")
+
+colonyplot <- ggplot(finalcolony, aes(x = redcolony, y = greencolony, colour = color)) +
+  geom_point(aes(color = color), size = 1, alpha = 0.9) +
+  labs(#title = "Red vs. Generation for Each Lineage",
+       x = "Red",
+       y = "Green",
+       color = "Lineage") +
+  theme_minimal() +
+  xlim(0,140) +
+  ylim(0,420)
+
+
+colonyplot
+
+```
+
+
+
+```{r}
+cellfile <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/startendscatter/cellplot.pdf"
+ggsave(cellfile, plot = cellplot, width = 10, height = 10, dpi = 300, useDingbats = FALSE)
+
+colonyfile <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/startendscatter/colonyplot.pdf"
+ggsave(colonyfile, plot = colonyplot, width = 10, height = 10, dpi = 300, useDingbats = FALSE)
+```
+
+
+
+
+
+
+
+

@@ -1,0 +1,102 @@
+---
+title: "R Notebook"
+output: html_notebook
+
+---
+
+```{r}
+library(viridis)
+library(tidyverse)
+library(data.table)
+library(scales)
+library(dplyr)
+library(gridExtra)
+```
+
+
+
+```{r}
+
+# Step 1: Read the Data
+# Replace the path with the actual path of your data file
+c4 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/nikon/20221130_084357_053__WellC4_ChannelYFP,A594_Seq0005 - Stitched.csv", sep=",")
+
+
+c4 <- c4
+c4 <- c4 %>% mutate(
+    greennorm = c4$green.90...90.0thPercentileIntensity,
+    rednorm = c4$red.90...90.0thPercentileIntensity
+  )
+
+```
+
+
+
+```{r}
+c4plot <- ggplot(c4, aes(x = rednorm, y = greennorm, colour = Id)) +
+  geom_point(aes(color = Id), size = 2, alpha = 0.8) +
+  labs(#title = "Red vs. Generation for Each Lineage",
+       x = "Red",
+       y = "Green") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  xlim(5000,15000) +
+  ylim(8000,31000)
+
+c4plot
+
+```
+```{r}
+c4plotfile <- "/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/nikon/c4.pdf"
+ggsave(c4plotfile, plot = c4plot, width = 10, height = 10, dpi = 300)
+```
+
+```{r}
+
+# Step 1: Read the Data
+# Replace the path with the actual path of your data file
+b1 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/nikon_be5/20221130_103711_074__WellB1_ChannelYFP,A594_Seq0003 - Stitched.csv", sep=",")
+b1_background <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/nikon/background 20221130_103711_074__WellB1_ChannelYFP,A594_Seq0003 - Stitched.csv", sep=",")
+
+greenbackground = mean(b1_background$green.background...MedianIntensity)
+redbackground = mean(b1_background$red.background...MedianIntensity)
+
+
+b1 <- b1 %>% mutate(
+    greennorm = b1$green.90...90.0thPercentileIntensity - greenbackground,
+    rednorm = b1$red.90...90.0thPercentileIntensity - redbackground
+  )
+
+```
+
+
+```{r}
+b1plot <- ggplot(b1, aes(x = rednorm, y = greennorm, colour = Id)) +
+  geom_point(aes(color = Id), size = 2, alpha = 1.3) +
+  labs(#title = "Red vs. Generation for Each Lineage",
+       x = "Red",
+       y = "Green") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  xlim(0,10500) +
+  ylim(0,11500)
+
+b1plot
+
+```
+
+```{r}
+b1plotfile <- "/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/nikon/b1.pdf"
+ggsave(b1plotfile, plot = b1plot, width = 10, height = 10, dpi = 300)
+```
+
+```{r}
+library(plotly)
+
+b1plot_interactive <- ggplotly(b1plot)
+b1plot_interactive
+
+
+```
+
+

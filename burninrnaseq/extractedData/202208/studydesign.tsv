@@ -1,0 +1,193 @@
+samples	condition	group	pretreat	indexjumped	treatment	Pretreat	Cond
+Sample_1	DMSO_1	dexamethasone	no	no	DMSO	FALSE	DMSO
+Sample_2	DMSO_1	dexamethasone	no	no	DMSO	FALSE	DMSO
+Sample_3	DMSO_1	dexamethasone	no	no	DMSO	FALSE	DMSO
+Sample_4	Dex	dexamethasone	no	no	dexamethasone	FALSE	signal
+Sample_5	Dex	dexamethasone	no	no	dexamethasone	FALSE	signal
+Sample_6	Dex	dexamethasone	no	no	dexamethasone	FALSE	signal
+Sample_7	T_1	dexamethasone	no	no	trametinib	FALSE	trametinib
+Sample_8	T_1	dexamethasone	no	no	trametinib	FALSE	trametinib
+Sample_9	T_1	dexamethasone	no	no	trametinib	FALSE	trametinib
+Sample_10	Dex_T	dexamethasone	no	no	dex+tram	FALSE	signal+trametinib
+Sample_11	Dex_T	dexamethasone	no	no	dex+tram	FALSE	signal+trametinib
+Sample_12	Dex_T	dexamethasone	no	no	dex+tram	FALSE	signal+trametinib
+Sample_13	pre_DMSO_1	dexamethasone	yes	no	DMSO	TRUE	DMSO
+Sample_14	pre_DMSO_1	dexamethasone	yes	no	DMSO	TRUE	DMSO
+Sample_15	pre_DMSO_1	dexamethasone	yes	no	DMSO	TRUE	DMSO
+Sample_16	pre_Dex	dexamethasone	yes	no	dexamethasone	TRUE	signal
+Sample_17	pre_Dex	dexamethasone	yes	no	dexamethasone	TRUE	signal
+Sample_18	pre_Dex	dexamethasone	yes	no	dexamethasone	TRUE	signal
+Sample_19	pre_T_1	dexamethasone	yes	no	trametinib	TRUE	trametinib
+Sample_20	pre_T_1	dexamethasone	yes	no	trametinib	TRUE	trametinib
+Sample_21	pre_T_1	dexamethasone	yes	no	trametinib	TRUE	trametinib
+Sample_22	pre_Dex_T	dexamethasone	yes	no	dex+tram	TRUE	signal+trametinib
+Sample_23	pre_Dex_T	dexamethasone	yes	no	dex+tram	TRUE	signal+trametinib
+Sample_24	pre_Dex_T	dexamethasone	yes	no	dex+tram	TRUE	signal+trametinib
+Sample_25	T_8_1	dexamethasone	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_26	T_8_1	dexamethasone	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_27	T_8_1	dexamethasone	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_28	Dex_T_8	dexamethasone	no	no	dex+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-8
+Sample_29	Dex_T_8	dexamethasone	no	no	dex+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-9
+Sample_30	Dex_T_8	dexamethasone	no	no	dex+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-10
+Sample_31	T_5224_1	dexamethasone	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_32	T_5224_1	dexamethasone	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_33	T_5224_1	dexamethasone	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_34	Dex_T_5224	dexamethasone	no	no	dex+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_35	Dex_T_5224	dexamethasone	no	no	dex+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_36	Dex_T_5224	dexamethasone	no	no	dex+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_37	pre_T_8_1	dexamethasone	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_38	pre_T_8_1	dexamethasone	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_39	pre_T_8_1	dexamethasone	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_40	Dex_T_8	dexamethasone	yes	no	dex+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-8
+Sample_41	Dex_T_8	dexamethasone	yes	no	dex+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-9
+Sample_42	Dex_T_8	dexamethasone	yes	no	dex+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-10
+Sample_43	pre_T_5224_1	dexamethasone	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_44	pre_T_5224_1	dexamethasone	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_45	pre_T_5224_1	dexamethasone	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_46	Dex_T_5224	dexamethasone	yes	no	dex+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_47	Dex_T_5224	dexamethasone	yes	no	dex+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_48	Dex_T_5224	dexamethasone	yes	no	dex+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_49	DMSO_2	compound C	no	no	DMSO	FALSE	DMSO
+Sample_50	DMSO_2	compound C	no	no	DMSO	FALSE	DMSO
+Sample_51	DMSO_2	compound C	no	no	DMSO	FALSE	DMSO
+Sample_52	compC	compound C	no	no	compound C	FALSE	signal
+Sample_53	compC	compound C	no	no	compound C	FALSE	signal
+Sample_54	compC	compound C	no	no	compound C	FALSE	signal
+Sample_55	T_2	compound C	no	no	trametinib	FALSE	trametinib
+Sample_56	T_2	compound C	no	no	trametinib	FALSE	trametinib
+Sample_57	T_2	compound C	no	no	trametinib	FALSE	trametinib
+Sample_58	compC_T	compound C	no	no	cmpdC+tram	FALSE	signal+trametinib
+Sample_59	compC_T	compound C	no	no	cmpdC+tram	FALSE	signal+trametinib
+Sample_60	compC_T	compound C	no	no	cmpdC+tram	FALSE	signal+trametinib
+Sample_61	pre_DMSO_2	compound C	yes	no	DMSO	TRUE	DMSO
+Sample_62	pre_DMSO_2	compound C	yes	no	DMSO	TRUE	DMSO
+Sample_63	pre_DMSO_2	compound C	yes	no	DMSO	TRUE	DMSO
+Sample_64	pre_compC	compound C	yes	no	compound C	TRUE	signal
+Sample_65	pre_compC	compound C	yes	no	compound C	TRUE	signal
+Sample_66	pre_compC	compound C	yes	no	compound C	TRUE	signal
+Sample_67	pre_T_2	compound C	yes	no	trametinib	TRUE	trametinib
+Sample_68	pre_T_2	compound C	yes	no	trametinib	TRUE	trametinib
+Sample_69	pre_T_2	compound C	yes	no	trametinib	TRUE	trametinib
+Sample_70	pre_compC_T	compound C	yes	no	cmpdC+tram	TRUE	signal+trametinib
+Sample_71	pre_compC_T	compound C	yes	no	cmpdC+tram	TRUE	signal+trametinib
+Sample_72	pre_compC_T	compound C	yes	no	cmpdC+tram	TRUE	signal+trametinib
+Sample_73	T_8_2	compound C	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_74	T_8_2	compound C	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_75	T_8_2	compound C	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_76	compC_T_8	compound C	no	no	cmpdC+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-8
+Sample_77	compC_T_8	compound C	no	no	cmpdC+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-9
+Sample_78	compC_T_8	compound C	no	no	cmpdC+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-10
+Sample_79	T_5224_2	compound C	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_80	T_5224_2	compound C	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_81	T_5224_2	compound C	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_82	compC_T_5224	compound C	no	no	cmpdC+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_83	compC_T_5224	compound C	no	no	cmpdC+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_84	compC_T_5224	compound C	no	no	cmpdC+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_85	pre_T_8_2	compound C	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_86	pre_T_8_2	compound C	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_87	pre_T_8_2	compound C	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_88	compC_T_8	compound C	yes	no	cmpdC+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-8
+Sample_89	compC_T_8	compound C	yes	no	cmpdC+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-9
+Sample_90	compC_T_8	compound C	yes	no	cmpdC+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-10
+Sample_91	pre_T_5224_2	compound C	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_92	pre_T_5224_2	compound C	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_93	pre_T_5224_2	compound C	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_94	compC_T_5224	compound C	yes	no	cmpdC+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_95	compC_T_5224	compound C	yes	no	cmpdC+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_96	compC_T_5224	compound C	yes	no	cmpdC+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_97	DMSO_3	AICAR	no	no	DMSO	FALSE	DMSO
+Sample_98	DMSO_3	AICAR	no	no	DMSO	FALSE	DMSO
+Sample_99	DMSO_3	AICAR	no	no	DMSO	FALSE	DMSO
+Sample_100	aicar	AICAR	no	no	AICAR	FALSE	signal
+Sample_101	aicar	AICAR	no	no	AICAR	FALSE	signal
+Sample_102	aicar	AICAR	no	no	AICAR	FALSE	signal
+Sample_103	T_3	AICAR	no	no	trametinib	FALSE	trametinib
+Sample_104	T_3	AICAR	no	no	trametinib	FALSE	trametinib
+Sample_105	T_3	AICAR	no	no	trametinib	FALSE	trametinib
+Sample_106	aicar_T	AICAR	no	no	AICAR+tram	FALSE	signal+trametinib
+Sample_107	aicar_T	AICAR	no	no	AICAR+tram	FALSE	signal+trametinib
+Sample_108	aicar_T	AICAR	no	no	AICAR+tram	FALSE	signal+trametinib
+Sample_109	pre_DMSO_3	AICAR	yes	no	DMSO	TRUE	DMSO
+Sample_110	pre_DMSO_3	AICAR	yes	no	DMSO	TRUE	DMSO
+Sample_111	pre_DMSO_3	AICAR	yes	no	DMSO	TRUE	DMSO
+Sample_112	pre_aicar	AICAR	yes	no	AICAR	TRUE	signal
+Sample_113	pre_aicar	AICAR	yes	no	AICAR	TRUE	signal
+Sample_114	pre_aicar	AICAR	yes	no	AICAR	TRUE	signal
+Sample_115	pre_T_3	AICAR	yes	no	trametinib	TRUE	trametinib
+Sample_116	pre_T_3	AICAR	yes	no	trametinib	TRUE	trametinib
+Sample_117	pre_T_3	AICAR	yes	no	trametinib	TRUE	trametinib
+Sample_118	pre_aicar_T	AICAR	yes	no	AICAR+tram	TRUE	signal+trametinib
+Sample_119	pre_aicar_T	AICAR	yes	no	AICAR+tram	TRUE	signal+trametinib
+Sample_120	pre_aicar_T	AICAR	yes	no	AICAR+tram	TRUE	signal+trametinib
+Sample_121	T_8_3	AICAR	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_122	T_8_3	AICAR	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_123	T_8_3	AICAR	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_124	aicar_T_8	AICAR	no	no	AICAR+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-8
+Sample_125	aicar_T_8	AICAR	no	no	AICAR+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-9
+Sample_126	aicar_T_8	AICAR	no	no	AICAR+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-10
+Sample_127	T_5224_3	AICAR	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_128	T_5224_3	AICAR	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_129	T_5224_3	AICAR	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_130	aicar_T_5224	AICAR	no	no	AICAR+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_131	aicar_T_5224	AICAR	no	no	AICAR+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_132	aicar_T_5224	AICAR	no	no	AICAR+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_133	pre_T_8_3	AICAR	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_134	pre_T_8_3	AICAR	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_135	pre_T_8_3	AICAR	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_136	aicar_T_8	AICAR	yes	no	AICAR+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-8
+Sample_137	aicar_T_8	AICAR	yes	no	AICAR+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-9
+Sample_138	aicar_T_8	AICAR	yes	no	AICAR+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-10
+Sample_139	T_5224_3	AICAR	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_140	T_5224_3	AICAR	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_141	T_5224_3	AICAR	yes	yes	tram+T5224	TRUE	trametinib+T-5224
+Sample_142	aicar_T_5224	AICAR	yes	no	AICAR+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_143	aicar_T_5224	AICAR	yes	no	AICAR+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_144	aicar_T_5224	AICAR	yes	no	AICAR+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_145	DMSO_4	PMA	no	no	DMSO	FALSE	DMSO
+Sample_146	DMSO_4	PMA	no	no	DMSO	FALSE	DMSO
+Sample_147	DMSO_4	PMA	no	yes	DMSO	FALSE	DMSO
+Sample_148	pma	PMA	no	no	PMA	FALSE	signal
+Sample_149	pma	PMA	no	no	PMA	FALSE	signal
+Sample_150	pma	PMA	no	no	PMA	FALSE	signal
+Sample_151	T_4	PMA	no	no	trametinib	FALSE	trametinib
+Sample_152	T_4	PMA	no	no	trametinib	FALSE	trametinib
+Sample_153	T_4	PMA	no	no	trametinib	FALSE	trametinib
+Sample_154	pma_T	PMA	no	no	PMA+tram	FALSE	signal+trametinib
+Sample_155	pma_T	PMA	no	no	PMA+tram	FALSE	signal+trametinib
+Sample_156	pma_T	PMA	no	no	PMA+tram	FALSE	signal+trametinib
+Sample_157	pre_DMSO_4	PMA	yes	no	DMSO	TRUE	DMSO
+Sample_158	pre_DMSO_4	PMA	yes	no	DMSO	TRUE	DMSO
+Sample_159	pre_DMSO_4	PMA	yes	no	DMSO	TRUE	DMSO
+Sample_160	pre_pma	PMA	yes	no	PMA	TRUE	signal
+Sample_161	pre_pma	PMA	yes	no	PMA	TRUE	signal
+Sample_162	pre_pma	PMA	yes	no	PMA	TRUE	signal
+Sample_163	pre_T_4	PMA	yes	no	trametinib	TRUE	trametinib
+Sample_164	pre_T_4	PMA	yes	no	trametinib	TRUE	trametinib
+Sample_165	pre_T_4	PMA	yes	no	trametinib	TRUE	trametinib
+Sample_166	pre_pma_T	PMA	yes	no	PMA+tram	TRUE	signal+trametinib
+Sample_167	pre_pma_T	PMA	yes	no	PMA+tram	TRUE	signal+trametinib
+Sample_168	pre_pma_T	PMA	yes	no	PMA+tram	TRUE	signal+trametinib
+Sample_169	T_8_4	PMA	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_170	T_8_4	PMA	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_171	T_8_4	PMA	no	no	tram+JNKIN8	FALSE	trametinib+JNK-IN-8
+Sample_172	pma_T_8	PMA	no	no	PMA+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-8
+Sample_173	pma_T_8	PMA	no	no	PMA+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-9
+Sample_174	pma_T_8	PMA	no	no	PMA+tram+JNKIN8	FALSE	signal+trametinib+JNK-IN-10
+Sample_175	T_5224_4	PMA	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_176	T_5224_4	PMA	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_177	T_5224_4	PMA	no	no	tram+T5224	FALSE	trametinib+T-5224
+Sample_178	pma_T_5224	PMA	no	no	PMA+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_179	pma_T_5224	PMA	no	no	PMA+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_180	pma_T_5224	PMA	no	no	PMA+tram+T5224	FALSE	signal+trametinib+T-5224
+Sample_181	pre_T_8_4	PMA	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_182	pre_T_8_4	PMA	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_183	pre_T_8_4	PMA	yes	no	tram+JNKIN8	TRUE	trametinib+JNK-IN-8
+Sample_184	pma_T_8	PMA	yes	no	PMA+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-8
+Sample_185	pma_T_8	PMA	yes	no	PMA+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-9
+Sample_186	pma_T_8	PMA	yes	no	PMA+tram+JNKIN8	TRUE	signal+trametinib+JNK-IN-10
+Sample_187	pre_T_5224_4	PMA	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_188	pre_T_5224_4	PMA	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_189	pre_T_5224_4	PMA	yes	no	tram+T5224	TRUE	trametinib+T-5224
+Sample_190	pma_T_5224	PMA	yes	no	PMA+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_191	pma_T_5224	PMA	yes	no	PMA+tram+T5224	TRUE	signal+trametinib+T-5224
+Sample_192	pma_T_5224	PMA	yes	no	PMA+tram+T5224	TRUE	signal+trametinib+T-5224

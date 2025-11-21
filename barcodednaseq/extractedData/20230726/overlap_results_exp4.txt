@@ -1,0 +1,12 @@
+"Name"	"Length"
+"a_bc30"	74
+"b_bc30"	130
+"c_bc30"	67
+"d_bc30"	129
+"a_c_overlap"	26
+"a_b_overlap"	33
+"b_c_overlap"	30
+"b_d_overlap"	36
+"a_d_overlap"	32
+"d_c_overlap"	23
+

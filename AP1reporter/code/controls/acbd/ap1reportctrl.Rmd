@@ -1,0 +1,143 @@
+---
+title: "ap1reportctrl"
+output: html_document
+date: "2024-06-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(reshape2)
+
+
+
+```
+
+```{r}
+gcu <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/Data/WM989/incucyte/2528/GCU_forR.txt", header = TRUE, sep = "")
+
+# Convert to long format
+gcu <- melt(gcu, id.vars = "Elapsed")
+
+# Plot
+gcuplot <- ggplot(gcu, aes(x = Elapsed, y = value, color = variable)) +
+  geom_line() +
+  labs(title = "gcu", x = "Elapsed Time", y = "Values") +
+  theme_minimal()  
+
+
+output_path_gcu <- "/Users/jessi/Downloads/gcuplot.pdf"
+ggsave(output_path_gcu, plot = gcuplot, width = 12, height = 8, dpi = 300, useDingbats = F)
+
+gcuplot
+
+```
+```{r}
+rcu <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/Data/WM989/incucyte/2528/rcu_forR.txt", header = TRUE, sep = "")
+
+# Convert to long format
+rcu <- melt(rcu, id.vars = "Elapsed")
+
+rcuplot <- ggplot(rcu, aes(x = Elapsed, y = value, color = variable)) +
+  geom_line() +
+  labs(title = "rcu", x = "Elapsed Time", y = "Values") +
+  theme_minimal()  
+
+
+output_path_rcu <- "/Users/jessi/Downloads/rcuplot.pdf"
+ggsave(output_path_rcu, plot = rcuplot, width = 12, height = 8, dpi = 300, useDingbats = F)
+
+rcuplot
+```
+
+
+```{r}
+
+gcu <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/Data/WM989/incucyte/2528/GCU_forR.txt", header = TRUE, sep = "")
+rcu <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/Data/WM989/incucyte/2528/rcu_forR.txt", header = TRUE, sep = "")
+
+
+Gr_data_green <- dplyr::select(gcu, Elapsed, A2, B2, C2) %>% dplyr::filter(Elapsed < 60)
+Gr_data_red <- dplyr::select(rcu, Elapsed,  A2, B2, C2) %>% dplyr::filter(Elapsed < 60)
+
+Rg_data_green <- dplyr::select(gcu, Elapsed, A3, B3, C3) %>% dplyr::filter(Elapsed < 60)
+Rg_data_red <-dplyr::select(rcu, Elapsed, A3, B3, C3) %>% dplyr::filter(Elapsed < 60)
+
+gcumax <- max(Gr_data_green)
+rcumax <- max(Rg_data_red)
+
+```
+
+```{r}
+Gr_data_green <- melt(Gr_data_green, id.vars = "Elapsed")
+
+Gr_data_green_plot <- ggplot(Gr_data_green, aes(x = Elapsed, y = value, color = variable)) +
+  geom_line() +
+  labs(title = "Gr_gcu", x = "Elapsed Time", y = "Values") +
+  theme_minimal() +
+  ylim(0,gcumax)
+
+
+output_path_Gr_data_green_plot <- "/Users/jessi/Downloads/Gr_data_green_plot.pdf"
+ggsave(output_path_Gr_data_green_plot, plot = Gr_data_green_plot, width = 12, height = 8, dpi = 300, useDingbats = F)
+
+Gr_data_green_plot
+
+
+```
+```{r}
+Gr_data_red <- melt(Gr_data_red, id.vars = "Elapsed")
+
+Gr_data_red_plot <- ggplot(Gr_data_red, aes(x = Elapsed, y = value, color = variable)) +
+  geom_line() +
+  labs(title = "Gr_rcu", x = "Elapsed Time", y = "Values") +
+  theme_minimal() +
+  ylim(0,rcumax)
+
+
+output_path_Gr_data_red_plot <- "/Users/jessi/Downloads/Gr_data_red_plot.pdf"
+ggsave(output_path_Gr_data_red_plot, plot = Gr_data_red_plot, width = 12, height = 8, dpi = 300, useDingbats = F)
+
+Gr_data_red_plot
+
+```
+```{r}
+Rg_data_green <- melt(Rg_data_green, id.vars = "Elapsed")
+
+Rg_data_green_plot <- ggplot(Rg_data_green, aes(x = Elapsed, y = value, color = variable)) +
+  geom_line() +
+  labs(title = "Rg_gcu", x = "Elapsed Time", y = "Values") +
+  theme_minimal() +
+  ylim(0,gcumax)
+
+
+output_path_Rg_data_green_plot <- "/Users/jessi/Downloads/Rg_data_green_plot.pdf"
+ggsave(output_path_Rg_data_green_plot, plot = Rg_data_green_plot, width = 12, height = 8, dpi = 300, useDingbats = F)
+
+Rg_data_green_plot
+
+
+```
+```{r}
+Rg_data_red <- melt(Rg_data_red, id.vars = "Elapsed")
+
+Rg_data_red_plot <- ggplot(Rg_data_red, aes(x = Elapsed, y = value, color = variable)) +
+  geom_line() +
+  labs(title = "Rg_rcu", x = "Elapsed Time", y = "Values") +
+  theme_minimal() +
+  ylim(0,rcumax) 
+
+
+output_path_Rg_data_red_plot <- "/Users/jessi/Downloads/Rg_data_red_plot.pdf"
+ggsave(output_path_Rg_data_red_plot, plot = Rg_data_red_plot, width = 12, height = 8, dpi = 300, useDingbats = F)
+
+Rg_data_red_plot
+
+```
+
+

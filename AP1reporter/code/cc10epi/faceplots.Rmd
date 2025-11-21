@@ -1,0 +1,61 @@
+---
+title: "R Notebook"
+output: html_notebook
+
+---
+
+```{r, warning=FALSE}
+library(viridis)
+library(tidyverse)
+library(data.table)
+library(scales)
+library(dplyr)
+library(gridExtra)
+library(ggplot2)
+library(ggbreak)
+```
+
+```{r, warning=FALSE}
+data <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/4668/4668_cc10.csv")
+
+data <- data.frame(lapply(data[,c(2:21)], function(x) as.numeric(x)))
+
+colony_data <- data %>% mutate(
+    greencolony = data$colony.two.color.intensity...Channel.1...MeanColonyIntensity - colony.two.color.intensity...Channel.1...25thPercentileIntensity,
+    redcolony =  data$colony.two.color.intensity...Channel.2...MeanColonyIntensity - colony.two.color.intensity...Channel.2...25thPercentileIntensity,
+    parentID = data$colony.Connection.IDs...parentId,
+    childID = data$colony.Connection.IDs...childId,
+    annotationID = data$colony.Connection.IDs...annotationId
+  ) %>% filter(XY == 2 | XY == 3 | XY == 4 | XY == 6) %>% filter(Time == 1 | Time == 3 | Time == 4)
+
+p1 <- ggplot(colony_data, aes(x = greencolony, y = redcolony)) +
+  geom_point(size = .4, alpha = 0.9) +
+  facet_grid(Time ~ XY, labeller = label_both) +
+  labs(
+    title = "Colony Intensity Analysis",
+    x = "Colony Intensity - GFP",
+    y = "Colony Intensity - mCherry"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16),
+    strip.background = element_rect(fill = "lightgrey"),
+    strip.text = element_text(size = 10, face = "bold"),
+    axis.title = element_text(size = 12),
+    panel.grid.major = element_line(color = "grey90"),
+    panel.grid.minor = element_line(color = "grey95")
+  )
+
+
+# A (no inhibitors, tram --> dmso) A4 dmso continuous
+# B (2 week switch, 4 week dmso )
+# t1 = 2wks, t2 = 3wk, t3 = 4 wk, t4 = 5wk t5 = 6wk
+
+ggsave("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/cc10epi/colony_intensity_plot1.pdf", plot = p1, width = 12, height = 8, units = "in")
+
+p1
+
+```
+
+
+

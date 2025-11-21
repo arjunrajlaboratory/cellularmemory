@@ -1,0 +1,178 @@
+---
+title: "R Notebook"
+output: html_notebook
+
+---
+
+```{r, warning=FALSE}
+library(viridis)
+library(tidyverse)
+library(data.table)
+library(scales)
+library(dplyr)
+library(gridExtra)
+library(ggplot2)
+```
+
+```{r, warning=FALSE}
+data_be5 <- read.csv("/Volumes/LaCie/3920/3920.csv")
+
+startenddata_be5 <- data_be5
+startenddata_be5 <- data.frame(lapply(startenddata_be5[,c(2:21)], function(x) as.numeric(x)))
+
+startenddata_be5 <- startenddata_be5 %>% mutate(
+    greencolony = startenddata_be5$Colony.two.color.intensity...Channel.1...MeanColonyIntensity - Colony.two.color.intensity...Channel.1...MedianIntensity,
+    redcolony =  startenddata_be5$Colony.two.color.intensity...Channel.2...MeanColonyIntensity - Colony.two.color.intensity...Channel.2...MedianIntensity,
+    parentID = startenddata_be5$Parent.and.child...parentId,
+    childID = startenddata_be5$Parent.and.child...childId,
+    annotationID = startenddata_be5$Parent.and.child...annotationId
+  )
+
+control <- startenddata_be5 %>% dplyr::filter(XY == "1")
+a485 <- startenddata_be5 %>% dplyr::filter(XY == "5")
+
+
+lineageinfo <- control %>% dplyr::select(lineage2 = childID, lineage1 = annotationID)
+
+lineageinfo <- lineageinfo %>% filter(across(everything(), ~ . != "-1"))
+
+lineageinfo <- data.frame(lapply(lineageinfo, function(x) as.numeric(x)))
+lineageinfo <- na.omit(lineageinfo)
+lineageinfo <- data.table(lineageinfo)
+lineageinfo[, lineageId := .I]
+
+lineagedata_long_control <- lineageinfo %>%
+  pivot_longer(
+    cols = -lineageId,  # Columns to make longer, except 'id'
+    names_to = "generation",  # New column for the original column names
+    values_to = "annotationID"  # New column for the values
+  )
+
+filteredData_control <- control %>% dplyr::select(annotationID, greencolony, redcolony)
+filteredData_control$annotationID <- as.numeric(filteredData_control$annotationID)
+
+lineagedata_long_control <- left_join(lineagedata_long_control, filteredData_control, by = "annotationID")
+lineagedata_long_control$lineageId <- factor(lineagedata_long_control$lineageId)
+
+
+lineageinfo <- a485 %>% dplyr::select(lineage2 = childID, lineage1 = annotationID)
+
+lineageinfo <- lineageinfo %>% filter(across(everything(), ~ . != "-1"))
+
+lineageinfo <- data.frame(lapply(lineageinfo, function(x) as.numeric(x)))
+lineageinfo <- na.omit(lineageinfo)
+lineageinfo <- data.table(lineageinfo)
+lineageinfo[, lineageId := .I]
+
+lineagedata_long_a485 <- lineageinfo %>%
+  pivot_longer(
+    cols = -lineageId,  # Columns to make longer, except 'id'
+    names_to = "generation",  # New column for the original column names
+    values_to = "annotationID"  # New column for the values
+  )
+
+filteredData_a485 <- a485 %>% dplyr::select(annotationID, greencolony, redcolony)
+filteredData_a485$annotationID <- as.numeric(filteredData_a485$annotationID)
+
+lineagedata_long_a485 <- left_join(lineagedata_long_a485, filteredData_a485, by = "annotationID")
+lineagedata_long_a485$lineageId <- factor(lineagedata_long_a485$lineageId)
+
+
+```
+
+
+
+
+```{r}
+
+control <- data.frame(lineagedata_long_control)
+
+# Create the plot
+controlplot <- ggplot(control, aes(x = greencolony, y = redcolony, color = generation, group = lineageId)) +
+  geom_point(size = 3) +
+  geom_line() +
+  scale_color_manual(values = c("lineage1" = "blue", "lineage2" = "red")) +
+  labs(title = "Control",
+       x = "Green Colony",
+       y = "Red Colony",
+       color = "Generation") +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  xlim(0,350) +
+  ylim(0,300)
+
+controlplot
+```
+```{r}
+
+a485 <- data.frame(lineagedata_long_a485)
+
+# Create the plot
+a485plot <- ggplot(a485, aes(x = greencolony, y = redcolony, color = generation, group = lineageId)) +
+  geom_point(size = 3) +
+  geom_line() +
+  scale_color_manual(values = c("lineage1" = "blue", "lineage2" = "red")) +
+  labs(title = "A485",
+       x = "Green Colony",
+       y = "Red Colony",
+       color = "Generation") +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  xlim(0,350) +
+  ylim(0,300)
+
+a485plot
+
+
+```
+```{r}
+
+
+```
+
+
+```{r}
+library(plotly)
+
+controlplot 
+
+colonyplotly <- ggplot(finalcolony, aes(x = redcolony, y = greencolony, colour = color,
+                                        text = paste("AnnotationID:", annotationID, 
+                                                     "<br>LineageID:", lineageId,
+                                                     "<br>green:", greencolony,
+                                                     "<br>red:", redcolony))) +
+  geom_point(size = 1, alpha = 0.9) +
+  labs(x = "Red",
+       y = "Green",
+       color = "Lineage") +
+  theme_minimal() +
+  scale_color_manual(values = custom_colors)  # Apply custom colors
+
+# Convert to plotly
+interactive_colonyplot <- ggplotly(colonyplotly, tooltip = "text")
+
+# Display the plot
+interactive_colonyplot
+
+```
+
+
+
+
+```{r}
+
+cellfile <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/startendscatter/be5/cellplot.pdf"
+ggsave(cellfile, plot = cellplot, width = 10, height = 10, dpi = 300, useDingbats = FALSE)
+
+colonyfile <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/startendscatter/be5/colonyplot.pdf"
+ggsave(colonyfile, plot = colonyplot, width = 10, height = 10, dpi = 300, useDingbats = FALSE)
+
+```
+
+
+
+
+
+
+
+

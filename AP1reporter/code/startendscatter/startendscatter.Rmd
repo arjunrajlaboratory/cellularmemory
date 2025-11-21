@@ -1,0 +1,236 @@
+---
+title: "R Notebook"
+output: html_notebook
+
+---
+
+```{r}
+library(viridis)
+library(tidyverse)
+library(data.table)
+library(scales)
+library(dplyr)
+library(gridExtra)
+```
+
+
+
+```{r}
+
+# Step 1: Read the Data
+# Replace the path with the actual path of your data file
+data <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/VID2925_A2.csv")
+
+startenddata <- data
+startenddata <- startenddata %>% mutate(
+    greennorm = startenddata$green.90...90.0thPercentileIntensity - startenddata$green.Annulus.intensity.measurements...MedianIntensity,
+    rednorm = startenddata$red.90...90.0thPercentileIntensity - startenddata$red.Annulus.intensity.measurements...MedianIntensity,
+    parentID = line.Blob.Parent.and.child...parentId,
+    childID = line.Blob.Parent.and.child...childId,
+    annotationID = line.Blob.Parent.and.child...annotationId
+  )
+
+lineageinfo <- startenddata %>% dplyr::select(lineage2 = childID, lineage1 = annotationID)
+
+lineageinfo <- data.frame(lapply(lineageinfo, function(x) as.numeric(x)))
+lineageinfo <- na.omit(lineageinfo)
+lineageinfo <- data.table(lineageinfo)
+lineageinfo[, lineageId := .I]
+
+lineagedata_long <- lineageinfo %>%
+  pivot_longer(
+    cols = -lineageId,  # Columns to make longer, except 'id'
+    names_to = "generation",  # New column for the original column names
+    values_to = "annotationID"  # New column for the values
+  )
+
+filteredData <- startenddata %>% dplyr::select(annotationID, greennorm, rednorm)
+filteredData$annotationID <- as.numeric(filteredData$annotationID)
+
+lineagedata_long <- left_join(lineagedata_long, filteredData, by = "annotationID")
+lineagedata_long$lineageId <- factor(lineagedata_long$lineageId)
+
+greencolors <- viridis(length(lineageinfo$lineageId), option = "D")
+
+```
+
+
+
+```{r}
+normplot <- ggplot(lineagedata_long, aes(x = rednorm, y = greennorm, colour = lineageId)) +
+  geom_line(aes(color = lineageId), alpha = 0.5) +  # Set transparency with alpha
+  geom_point(aes(color = lineageId), size = 2, alpha = 0.8) +
+  scale_color_manual(values = greencolors) +
+  labs(#title = "Red vs. Generation for Each Lineage",
+       x = "Red",
+       y = "Green",
+       color = "Lineage") +
+  theme_minimal() +
+  xlim(0,200) +
+  ylim(0,700)
+
+normplot
+
+```
+```{r}
+normplotfile <- "/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/startendscatter/VID2925_A2.pdf"
+ggsave(normplotfile, plot = normplot, width = 12, height = 8, dpi = 300)
+```
+
+```{r}
+
+# Step 1: Read the Data
+# Replace the path with the actual path of your data file
+datajnk <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/VID2925_B2.csv")
+
+startenddatajnk <- datajnk
+startenddatajnk <- startenddatajnk %>% mutate(
+    greennorm = startenddatajnk$green.90...90.0thPercentileIntensity - startenddatajnk$green.annulus...MedianIntensity,
+    rednorm =  startenddatajnk$red.90...90.0thPercentileIntensity - startenddatajnk$red.annulus...MedianIntensity,
+    parentID = colony.Blob.Parent.and.child...parentId,
+    childID = colony.Blob.Parent.and.child...childId,
+    annotationID = colony.Blob.Parent.and.child...annotationId
+  )
+
+
+lineageinfo <- startenddatajnk %>% dplyr::select(lineage2 = childID, lineage1 = annotationID)
+
+lineageinfo <- data.frame(lapply(lineageinfo, function(x) as.numeric(x)))
+lineageinfo <- na.omit(lineageinfo)
+lineageinfo <- data.table(lineageinfo)
+lineageinfo[, lineageId := .I]
+
+lineagedata_longjnk <- lineageinfo %>%
+  pivot_longer(
+    cols = -lineageId,  # Columns to make longer, except 'id'
+    names_to = "generation",  # New column for the original column names
+    values_to = "annotationID"  # New column for the values
+  )
+
+filteredDatajnk <- startenddatajnk %>% dplyr::select(annotationID, greennorm, rednorm)
+filteredDatajnk$annotationID <- as.numeric(filteredDatajnk$annotationID)
+
+lineagedata_longjnk <- left_join(lineagedata_longjnk, filteredDatajnk, by = "annotationID")
+lineagedata_longjnk$lineageId <- factor(lineagedata_longjnk$lineageId)
+
+greencolorsjnk <- viridis(length(lineageinfo$lineageId), option = "D")
+
+```
+
+
+
+```{r}
+normplotjnk <- ggplot(lineagedata_longjnk, aes(x = rednorm, y = greennorm, colour = lineageId)) +
+  geom_line(aes(color = lineageId), alpha = 0.5) +  # Set transparency with alpha
+  geom_point(aes(color = lineageId), size = 2, alpha = 1) +
+  scale_color_manual(values = greencolorsjnk) +
+  labs(#title = "Red vs. Generation for Each Lineage",
+       x = "Red",
+       y = "Green",
+       color = "Lineage") +
+  theme_minimal() +
+   xlim(0,300) +
+  ylim(0,1000) +
+  theme(legend.position = "none")
+
+
+normplotjnk
+
+```
+
+```{r}
+normplotfilejnk <- "/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/startendscatter/VID2925_B2.pdf"
+ggsave(normplotfilejnk, plot = normplotjnk, width = 10, height = 10, dpi = 300)
+```
+
+```{r}
+datac2 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/VID2925_C2.csv")
+
+startenddatac2 <- datac2
+startenddatac2 <- startenddatac2 %>% mutate(
+    greennorm = startenddatac2$green.90...90.0thPercentileIntensity - startenddatac2$green.annulus...MedianIntensity,
+    rednorm =  startenddatac2$red.90...90.0thPercentileIntensity - startenddatac2$red.annulus...MedianIntensity,
+    parentID = colony.Blob.Parent.and.child...parentId,
+    childID = colony.Blob.Parent.and.child...childId,
+    annotationID = colony.Blob.Parent.and.child...annotationId
+  )
+
+
+lineageinfo <- startenddatac2 %>% dplyr::select(lineage2 = childID, lineage1 = annotationID)
+
+lineageinfo <- data.frame(lapply(lineageinfo, function(x) as.numeric(x)))
+lineageinfo <- na.omit(lineageinfo)
+lineageinfo <- data.table(lineageinfo)
+lineageinfo[, lineageId := .I]
+
+lineagedata_longc2 <- lineageinfo %>%
+  pivot_longer(
+    cols = -lineageId,  # Columns to make longer, except 'id'
+    names_to = "generation",  # New column for the original column names
+    values_to = "annotationID"  # New column for the values
+  )
+
+filteredDatac2 <- startenddatac2 %>% dplyr::select(annotationID, greennorm, rednorm)
+filteredDatac2$annotationID <- as.numeric(filteredDatac2$annotationID)
+
+lineagedata_longc2 <- left_join(lineagedata_longc2, filteredDatac2, by = "annotationID")
+lineagedata_longc2$lineageId <- factor(lineagedata_longc2$lineageId)
+
+greencolorsc2 <- viridis(length(lineageinfo$lineageId), option = "D")
+
+```
+
+
+
+```{r}
+normplotc2 <- ggplot(lineagedata_longc2, aes(x = rednorm, y = greennorm, colour = lineageId)) +
+  geom_line(aes(color = lineageId), alpha = 0.5) +  # Set transparency with alpha
+  geom_point(aes(color = lineageId), size = 1, alpha = 0.5) +
+  scale_color_manual(values = greencolorsc2) +
+  labs(#title = "Red vs. Generation for Each Lineage",
+       x = "Red",
+       y = "Green",
+       color = "Lineage") +
+  theme_minimal() 
+
+
+normplotc2
+
+```
+
+```{r}
+
+a2 <- lineagedata_long %>% mutate(lineageId = paste0(lineageId, "_a2"))
+c2 <- lineagedata_longc2 %>% mutate(lineageId = paste0(lineageId, "_c2"))
+
+# Combine dataframes
+combined_ctrl <- bind_rows(a2, c2)
+
+
+greencolors <- viridis(length(combined_ctrl$lineageId)/2, option = "D")
+
+
+ctrlplot <- ggplot(combined_ctrl, aes(x = rednorm, y = greennorm, colour = lineageId)) +
+  geom_line(aes(color = lineageId), alpha = 0.5) +  # Set transparency with alpha
+  geom_point(aes(color = lineageId), size = 2, alpha = 1) +
+  scale_color_manual(values = greencolors) +
+  labs(#title = "Red vs. Generation for Each Lineage",
+       x = "Red",
+       y = "Green",
+       color = "Lineage") +
+  theme_minimal() +
+  xlim(0,300) +
+  ylim(0,1000)+
+  theme(legend.position = "none")
+
+
+ctrlplot
+```
+
+```{r}
+ctrlfile <- "/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/ap1reporter/startendscatter/ctrlplot.pdf"
+ggsave(ctrlfile, plot = ctrlplot, width = 10, height = 10, dpi = 300)
+```
+
+
+

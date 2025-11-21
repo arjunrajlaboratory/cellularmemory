@@ -1,0 +1,314 @@
+---
+title: "atacAnalysis"
+output: html_document
+date: "2024-01-11"
+---
+
+```{r, echo=FALSE}
+load("../extractedData/myCounts.RData")
+library(DESeq2)
+atacDDS <- DESeqDataSetFromMatrix(assay(filtered_myCounts), metaData, ~sample.actual, rowRanges = rowRanges(myCounts))
+atacDDS <- DESeq(atacDDS)
+```
+
+
+```{r, echo=FALSE}
+# Creates heatmap for all the peaks for all of the samples
+peakRanges <- rowRanges(filtered_myCounts)
+library(BSgenome.Hsapiens.UCSC.hg19)
+peakRangesCentered <- resize(peakRanges, fix = "center", width = 100)
+peakSeqs <- getSeq(BSgenome.Hsapiens.UCSC.hg19, peakRangesCentered)
+names(peakSeqs) <- as.character(peakRangesCentered)
+
+library(JASPAR2020)
+library(TFBSTools)
+library(motifmatchr)
+library(chromVAR)
+library(pheatmap)
+library(BSgenome.Hsapiens.UCSC.hg19)
+library(GenomicRanges)
+
+
+opts <- list()
+opts[["tax_group"]] <- "vertebrates"
+opts[["collection"]] <- "CORE"
+opts[["all_versions"]] <- FALSE
+motifsToScan <- getMatrixSet(JASPAR2020, opts)
+
+subset_myCounts <- filtered_myCounts[rowSums(assay(filtered_myCounts)) > 5, ]
+subset_myCounts <- addGCBias(subset_myCounts, genome = BSgenome.Hsapiens.UCSC.hg19)
+motif_ix <- matchMotifs(motifsToScan, subset_myCounts, genome = BSgenome.Hsapiens.UCSC.hg19)
+
+include_rows <- atacDDS$sample.actual %in% c("3d dmso")
+control_myCounts <- subset_myCounts[,include_rows]
+
+# Compute deviations using the derived expectations
+deviations <- computeDeviations(object = subset_myCounts, 
+                                annotations = motif_ix, 
+                                background_peaks = getBackgroundPeaks(subset_myCounts), 
+                                expectation = computeExpectations(control_myCounts))
+
+variability_Known <- computeVariability(deviations)
+devZscores <- deviationScores(deviations)
+variability_Known <- variability_Known[order(variability_Known$p_value), ]
+topVariable <- variability_Known[1:50, ]
+devTop <- merge(topVariable[, 1, drop = FALSE], devZscores, by = 0)
+
+devToPlot <- as.matrix(devTop[, -c(1:2)])
+rownames(devToPlot) <- devTop[, 2]
+name_mapping <- setNames(metaData$sample.actual, metaData$bamName)
+
+# Add replicate information to the column names of devToPlot
+replicate_mapping <- setNames(metaData$replicate, metaData$bamName)
+replicate_column <- replicate_mapping[colnames(devToPlot)]
+colnames(devToPlot) <- paste0(name_mapping[colnames(devToPlot)], "_(", replicate_column, ")")
+desired_order <- c("3d (-)_(a)", "3d (-)_(b)", "3d dmso_(a)", "3d dmso_(b)", "3d dex_(a)",
+                   "3d dex_(b)", "14d dex -> dmso_(a)", "14d dex -> dmso_(b)",
+                   "14d dmso -> T_(a)", "14d dmso -> T_(b)", "14d dex -> T_(a)",
+                   "14d dex -> T_(b)", "3d dex jnk8_(a)", "3d dex jnk8_(b)",
+                   "14d dex -> T+jnk8_(a)", "14d dex -> T+jnk8_(b)", "14d dex+jnk8 -> T+jnk8_(a)",
+                   "14d dex+jnk8 -> T+jnk8_(b)")
+
+devToPlot <- devToPlot[, desired_order] 
+high_color <- '#F0B945'
+middle_color <- "#707071"
+low_color <- "#662D80"
+custom_palette <- colorRampPalette(c(low_color, middle_color,high_color)) (50)
+# pheatmap(devToPlot, cluster_cols = FALSE, color = custom_palette)
+
+pdf("../plots/allpeaks_heatmap.pdf", width = 10, height = 10)
+pheatmap(devToPlot, cluster_cols = FALSE, color = custom_palette)
+dev.off()
+```
+
+```{r,echo=FALSE}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
+# Convert devTop to a data frame if it's not already
+devTop <- as.data.frame(devTop)
+
+# Extract sample.actual information from deviations@colData
+sample_info <- data.frame(
+  file_name = metaData$bamName,
+  sample_actual = metaData$sample.actual
+)
+
+# Select the rows for MA0113.3 and MA0727.1
+selected_rows <- devTop[devTop$Row.names %in% c("MA0113.3", "MA0727.1"), ]
+
+# Reshape the data from wide to long format
+data_long <- pivot_longer(selected_rows, 
+                          cols = starts_with("Sorted_"), 
+                          names_to = "file_name", 
+                          values_to = "Deviation")
+
+# Merge with sample information
+data_long <- merge(data_long, sample_info, by = "file_name")
+
+desired_order <- c("3d (-)", "3d dmso", "3d dex", "3d dex jnk8","14d dex -> dmso",
+                   "14d dmso -> T", "14d dex -> T","14d dex -> T+jnk8", "14d dex+jnk8 -> T+jnk8")
+
+# Convert sample_actual to a factor with the desired order
+data_long$sample_actual <- factor(data_long$sample_actual, levels = desired_order)
+
+# Calculate averages
+data_avg <- data_long %>%
+  group_by(name, sample_actual) %>%
+  summarize(avg_deviation = mean(Deviation))
+
+
+c1_motif_data <- data_long %>% filter(Row.names == "MA0113.3")
+c1_motif_avg <- data_avg %>% filter(name == "NR3C1")
+
+c2_motif_data <- data_long %>% filter(Row.names == "MA0727.1")
+c2_motif_avg <- data_avg %>% filter(name == "NR3C2")
+
+library(ggplot2)
+
+# Define the dodge width
+dodge_width <- 0.8
+
+# Creating the plot
+c1_plot <- ggplot() +
+  # Add individual experiment bars with dodging
+  geom_bar(data = c1_motif_data, aes(x = sample_actual, y = Deviation, fill = file_name), 
+           stat = "identity", position = position_dodge(width = dodge_width), width = 0.6) +
+  # Add overall mean bars as translucent with a wider dodge to cover all individual bars
+  geom_bar(data = c1_motif_avg, aes(x = sample_actual, y = avg_deviation), 
+           stat = "identity", fill = "grey", color = "black", size = 1, alpha = 0.5, 
+           position = position_dodge(width = dodge_width * 1.2), width = dodge_width * 1.1, show.legend = FALSE) +
+  # Customize theme
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  # Add labels and title
+  labs(x = "Sample", y = "Deviation", title = "Deviations For NR3C1") +
+  # Set the order of the x-axis categories
+  scale_x_discrete(limits = desired_order) +
+  ylim(-5,15)
+
+# Creating the plot
+c2_plot <- ggplot() +
+  # Add individual experiment bars with dodging
+  geom_bar(data = c2_motif_data, aes(x = sample_actual, y = Deviation, fill = file_name), 
+           stat = "identity", position = position_dodge(width = dodge_width), width = 0.6) +
+  # Add overall mean bars as translucent with a wider dodge to cover all individual bars
+  geom_bar(data = c2_motif_avg, aes(x = sample_actual, y = avg_deviation), 
+           stat = "identity", fill = "grey", color = "black", size = 1, alpha = 0.5, 
+           position = position_dodge(width = dodge_width * 1.2), width = dodge_width * 1.1, show.legend = FALSE) +
+  # Customize theme
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  # Add labels and title
+  labs(x = "Sample", y = "Deviation", title = "Deviations For NR3C2") +
+  # Set the order of the x-axis categories
+  scale_x_discrete(limits = desired_order) +
+  ylim(-5,15)
+
+# Print the plot
+print(c1_plot)
+print (c2_plot)
+
+ggsave("../plots/c1_plot.pdf", plot = c1_plot, width = 8, height = 6)
+
+ggsave("../plots/c2_plot.pdf", plot = c2_plot, width = 8, height = 6)
+
+```
+
+```{r, echo=FALSE}
+# Defines specific peak groups of interest
+library(DESeq2)
+conditionNames <- atacDDS$sample.actual
+Group <- factor(conditionNames)
+colData(filtered_myCounts) <- DataFrame(data.frame(Group, row.names = colnames(filtered_myCounts)))
+dds <- DESeqDataSet(filtered_myCounts, design = ~Group)
+dds <- DESeq(dds)
+
+sample_data <- data.frame(sample_actual = atacDDS$sample.actual)
+include_rows <- atacDDS$sample.actual %in% c("3d dmso", "14d dmso -> T")
+
+condition1 <- levels(conditionNames)[7] #3d dex
+condition2 <- levels(conditionNames)[9] #3d (dmso)
+contrast_name <- paste(condition1, condition2, sep = "_vs_")
+contrast <- c("sample.actual", condition1, condition2)
+myRes <- results(atacDDS,contrast = contrast, format = "GRanges")
+Dex_upRegions <- myRes[myRes$log2FoldChange > 1]
+
+condition1 <- levels(conditionNames)[5] #14d dmso --> T
+condition2 <- levels(conditionNames)[9] #3d (dmso)
+contrast_name <- paste(condition1, condition2, sep = "_vs_")
+contrast <- c("sample.actual", condition1, condition2)
+myRes <- results(atacDDS, contrast = contrast, format = "GRanges")
+T_upRegions <- myRes[myRes$log2FoldChange > 1]
+
+# Define the peaks specific to Dex_upRegions
+Dex_specific_peaks <- setdiff(Dex_upRegions, T_upRegions)
+T_specific_peaks <- setdiff(T_upRegions, Dex_upRegions)
+overlap_idx <- findOverlaps(Dex_upRegions, T_upRegions)
+dex_T_overlap_peaks <- Dex_upRegions[queryHits(overlap_idx)]
+
+condition1 <- levels(conditionNames)[2] #14d dex -> T
+condition2 <- levels(conditionNames)[5] #14d dmso ->T
+contrast_name <- paste(condition1, condition2, sep = "_vs_")
+contrast <- c("sample.actual", condition1, condition2)
+myRes <- results(atacDDS, contrast = contrast, format = "GRanges")
+learned_peaks <- myRes[myRes$log2FoldChange > 1]
+
+overlap_idx <- findOverlaps(Dex_specific_peaks, learned_peaks)
+learned_peaks_dex_specific <- Dex_specific_peaks[queryHits(overlap_idx)]
+notlearned_peaks_dex_specific <- setdiff(Dex_specific_peaks, learned_peaks)
+
+overlap_idx <- findOverlaps(Dex_upRegions, learned_peaks)
+learned_peaks_all <- Dex_upRegions[queryHits(overlap_idx)]
+notlearned_peaks_all <- setdiff(Dex_upRegions,learned_peaks_all)
+```
+
+``` {r, echo = FALSE}
+# Heatmap for all dex peaks for all conditions
+upRegions <- Dex_upRegions
+
+row_ranges <- rowRanges(filtered_myCounts)
+overlapping_indices <- findOverlaps(row_ranges, upRegions)
+subsetted_myCounts <- filtered_myCounts[queryHits(overlapping_indices), ]
+
+subsetted_myCounts <- subsetted_myCounts[rowSums(assay(subsetted_myCounts)) > 5, ]
+subsetted_myCounts <- addGCBias(subsetted_myCounts, genome = BSgenome.Hsapiens.UCSC.hg19)
+motif_ix <- matchMotifs(motifsToScan, subsetted_myCounts, genome = BSgenome.Hsapiens.UCSC.hg19)
+include_rows <- atacDDS$sample.actual %in% c("3d dmso")
+control_myCounts <- subsetted_myCounts[,include_rows]
+
+# Compute deviations using the derived expectations
+deviations <- computeDeviations(object = subsetted_myCounts, 
+                                annotations = motif_ix, 
+                                background_peaks = getBackgroundPeaks(subsetted_myCounts), 
+                                expectation = computeExpectations(control_myCounts))
+
+variability_Known <- computeVariability(deviations)
+devZscores <- deviationScores(deviations)
+variability_Known <- variability_Known[order(variability_Known$p_value), ]
+topVariable <- variability_Known[1:60, ]
+devTop <- merge(topVariable[, 1, drop = FALSE], devZscores, by = 0)
+
+devToPlot <- as.matrix(devTop[, -c(1:2)])
+rownames(devToPlot) <- devTop[, 2]
+name_mapping <- setNames(metaData$sample.actual, metaData$bamName)
+
+# Add replicate information to the column names of devToPlot
+replicate_mapping <- setNames(metaData$replicate, metaData$bamName)
+replicate_column <- replicate_mapping[colnames(devToPlot)]
+colnames(devToPlot) <- paste0(name_mapping[colnames(devToPlot)], "_(", replicate_column, ")")
+
+
+devToPlot <- devToPlot[, desired_order] 
+# pheatmap(devToPlot, cluster_cols = FALSE, color = custom_palette)
+
+pdf("../plots/dexall_peaks_heatmap_newnorm_newcolor_20240708.pdf", width = 10, height = 10)
+pheatmap(devToPlot, cluster_cols = FALSE, color = custom_palette)
+dev.off()
+
+```
+
+``` {r, echo = FALSE}
+# Heatmap for all dex specific peaks for all conditions
+upRegions <- Dex_specific_peaks
+
+row_ranges <- rowRanges(filtered_myCounts)
+overlapping_indices <- findOverlaps(row_ranges, upRegions)
+subsetted_myCounts <- filtered_myCounts[queryHits(overlapping_indices), ]
+
+subsetted_myCounts <- subsetted_myCounts[rowSums(assay(subsetted_myCounts)) > 5, ]
+subsetted_myCounts <- addGCBias(subsetted_myCounts, genome = BSgenome.Hsapiens.UCSC.hg19)
+motif_ix <- matchMotifs(motifsToScan, subsetted_myCounts, genome = BSgenome.Hsapiens.UCSC.hg19)
+include_rows <- atacDDS$sample.actual %in% c("3d dmso")
+control_myCounts <- subsetted_myCounts[,include_rows]
+
+# Compute deviations using the derived expectations
+deviations <- computeDeviations(object = subsetted_myCounts, 
+                                annotations = motif_ix, 
+                                background_peaks = getBackgroundPeaks(subsetted_myCounts), 
+                                expectation = computeExpectations(control_myCounts))
+
+variability_Known <- computeVariability(deviations)
+devZscores <- deviationScores(deviations)
+variability_Known <- variability_Known[order(variability_Known$p_value), ]
+topVariable <- variability_Known[1:60, ]
+devTop <- merge(topVariable[, 1, drop = FALSE], devZscores, by = 0)
+
+devToPlot <- as.matrix(devTop[, -c(1:2)])
+rownames(devToPlot) <- devTop[, 2]
+name_mapping <- setNames(metaData$sample.actual, metaData$bamName)
+
+# Add replicate information to the column names of devToPlot
+replicate_mapping <- setNames(metaData$replicate, metaData$bamName)
+replicate_column <- replicate_mapping[colnames(devToPlot)]
+colnames(devToPlot) <- paste0(name_mapping[colnames(devToPlot)], "_(", replicate_column, ")")
+
+
+devToPlot <- devToPlot[, desired_order] 
+# pheatmap(devToPlot, cluster_cols = FALSE, color = custom_palette)
+
+pdf("../plots/dexspecific_peaks_heatmap_newnorm_newcolor_20240708.pdf", width = 10, height = 10)
+pheatmap(devToPlot, cluster_cols = FALSE, color = custom_palette)
+dev.off()
+```

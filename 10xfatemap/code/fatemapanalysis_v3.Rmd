@@ -1,0 +1,627 @@
+---
+title: "Jess_wm989_adaptation_fatemap"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{bash, eval = FALSE, echo = TRUE}
+for ((i=1; i<=6; i++))
+do
+	kb count JLPR_fatemap_20220816_S${i}_merged_R1.fastq.gz JLPR_fatemap_20220816_S${i}_merged_R2.fastq.gz -i Homo_sapiens.GRCh38.cdna.all.index -x 10XV3 -g t2g.txt -t 12 --cellranger
+done
+```
+
+```{r}
+library(tidyverse)
+library(DropletUtils)
+library(Seurat) 
+library(Matrix)
+library(scales)
+library(rjson)
+library(R2HTML)
+library(DT)
+library(ggplot2)
+library(stringr)
+library(readr)
+library(here)
+library(fitdistrplus)
+library(dplyr)
+library(data.table)
+library(cowplot)
+library(presto)
+library(Cairo)
+library(harmony)
+options(future.globals.maxSize = 10000 * 1024^2)
+set.seed(19)
+
+```
+
+```{r, eval = FALSE, echo = TRUE}
+# load raw data matrix using readMM function from the Matrix package
+raw_mtx <- readMM('counts_unfiltered/cellranger/matrix.mtx') 
+# load gene table
+genes <- read.csv('counts_unfiltered/cellranger/genes.tsv', sep = '\t', header = F)
+# add ensemble gene_ids to the data matrix as rownames
+rownames(raw_mtx) <- genes[,1] 
+# add cell barcodes as column names
+colnames(raw_mtx) <- read.csv('counts_unfiltered/cellranger/barcodes.tsv', sep = '\t', header = F)[,1] 
+
+# use DropletUtils package to get probability that each barcode is a cell
+out <- emptyDrops(raw_mtx) 
+# set threshold probability for calling a cell
+keep <- out$FDR <= 0.05 
+# use threshold to remove empty drops
+keep[is.na(keep)] <- ff
+filt_mtx <- raw_mtx[,keep] 
+
+# write out filtered results
+write10xCounts('counts_filtered', gene.symbol = genes[,2], filt_mtx, overwrite=T) 
+```
+
+## Generate QA report ----
+
+this report will contain some useful metrics as well as the traditional log-transformed UMI rank plot (a.k.a. 'waterfall' plot) plot was first described in the Drop-seq paper: - Macosko et al. 2015, <DOI:10.1016/j.cell.2015.05.002> this plot has two important points that we will try to identify: 1. 'knee point' - is the point where the signed curvature is minimized. This corresponds to a transition between a distinct subset of barcodes with large totals and the majority of barcodes with smaller totals 2. 'inflection point' - is the point on the curve where the first derivative is minimized. This corresponds to the point past which cells cannot reliably be distinguished from background
+
+```{r, eval = FALSE, echo = TRUE}
+
+# source the R script that contains the bc_rank_plot and print_HTML functions we'll use to produce a QC report
+# this script comes from Sarah Ennis's github repo here:  https://github.com/Sarah145/scRNA_pre_process
+source('./functions.R') 
+
+# load filtered mtx
+filt_mtx <- readMM('counts_filtered/matrix.mtx') 
+
+# load run info from JSON files produced by Kb
+kb_stats <- c(fromJSON(file = 'inspect.json'), fromJSON(file = 'run_info.json')) 
+
+# determine chemistry version
+tech <- grep('10X(.*)', strsplit(kb_stats$call, '\\s')[[1]], value=T) 
+
+# make a nice/simple table that summarizes that stats
+seq_stats <- data.frame(stat = c('Sequencing technology', 'Number of reads processed', '% reads pseudoaligned', # get sequencing/alignment stats 
+                                 '% reads on whitelist'), 
+                        value = prettyNum(c(tech, kb_stats$n_processed, kb_stats$p_pseudoaligned, 
+                                            round(kb_stats$percentageReadsOnWhitelist,2)), big.mark = ','))
+
+# calculate cell stats and save to df
+p_cnts_in_cells <- round((sum(filt_mtx)/sum(raw_mtx))*100, 2) 
+med_cnts_cell <- median(colSums(filt_mtx))
+med_genes_cell <- median(apply(filt_mtx, 2, function(x) sum(x >= 1)))
+tot_genes_detected <- sum(rowSums(filt_mtx)>=1)
+cell_stats <- data.frame(stat = c('Estimated number of cells', '% counts in cells', 
+                                  'Median counts per cell', 'Median genes per cell', 'Total genes detected'), 
+                         value = prettyNum(c(ncol(filt_mtx), p_cnts_in_cells, med_cnts_cell,
+                                             med_genes_cell, tot_genes_detected), big.mark = ','))
+
+# get rank stats
+stats <- barcodeRanks(raw_mtx)
+
+# load raw cells
+raw_cells <- read.csv('counts_unfiltered/cellranger/barcodes.tsv', header = F, sep ='\t')[,1] 
+
+# load filtered cells
+filt_cells <- read.csv('counts_filtered/barcodes.tsv', header = F, sep ='\t')[,1] 
+
+# create barcode rank plot png
+bc_rank_plot(stats = stats, raw_cells = raw_cells, filt_cells = filt_cells, save = 'counts_filtered/barcode_rank.png') 
+
+# output a HTML summary of the run
+print_HTML(seq_stats = seq_stats, cell_stats = cell_stats, dir = 'counts_filtered', sample_id = NULL)
+```
+
+## Generate Seurat objects for each sample ---- 
+
+```{r}
+
+input_dir <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/10xfatemap/s%s/counts_filtered/"
+output_dir <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/10xfatemap/"
+
+i=1
+datadir <- sprintf(input_dir, i) 
+
+expression_matrix <- Read10X(
+  datadir,
+  gene.column = 2,
+  cell.column = 1,
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+# actually creating the Seurat Object
+seurat.temp <- CreateSeuratObject(counts = expression_matrix, min.cells = 3)  
+#  %>% NormalizeData(verbose = FALSE) 
+#  %>% FindVariableFeatures(verbose = FALSE)
+
+# add percent of mitochondrial reads
+seurat.temp[["percent.mt"]] <- PercentageFeatureSet(object = seurat.temp, pattern = "^MT-") 
+
+# in the violin plot above, features = genes detected, while counts = total molecules detected
+# Make violin plot
+VlnPlot(seurat.temp, c("nCount_RNA", "nFeature_RNA", "percent.mt"), pt.size = 0.1)
+# Filter your data
+seurat.temp.filtered <- subset(seurat.temp, subset = nCount_RNA < 36000 & 
+                           nCount_RNA > 2000 & 
+                           nFeature_RNA > 1600 & 
+                           nFeature_RNA < 7200 &
+                           percent.mt < 20)
+VlnPlot(seurat.temp.filtered, c("nCount_RNA", "nFeature_RNA", "percent.mt"), pt.size = 0.1)
+
+#seurat.temp <- subset(seurat.temp, subset = nFeature_RNA > 200 & nFeature_RNA < 7200 & percent.mt < 26)
+# NOTE: you need to be careful when setting cut-offs that you're not losing unique cell populations
+```
+
+
+```{r}
+# another QA plot
+ggplot(seurat.temp.filtered@meta.data, aes(nCount_RNA, nFeature_RNA)) +
+  geom_point(alpha = 0.7, size = 0.5) +
+  labs(x = "Total UMI counts per cell", y = "Number of genes detected")
+```
+
+```{r}
+for (i in 1:6) {
+ 
+datadir <- sprintf(input_dir, i) 
+
+expression_matrix <- Read10X(
+  datadir,
+  gene.column = 2,
+  cell.column = 1,
+  unique.features = TRUE,
+  strip.suffix = FALSE
+)
+
+# actually creating the Seurat Object
+seurat.temp <- CreateSeuratObject(counts = expression_matrix, min.cells = 3)  
+#  %>% NormalizeData(verbose = FALSE) 
+#  %>% FindVariableFeatures(verbose = FALSE)
+
+# add percent of mitochondrial reads
+seurat.temp[["percent.mt"]] <- PercentageFeatureSet(object = seurat.temp, pattern = "^MT-") 
+
+# in the violin plot above, features = genes detected, while counts = total molecules detected
+# Make violin plot
+VlnPlot(seurat.temp, c("nCount_RNA", "nFeature_RNA", "percent.mt"), pt.size = 0.1)
+# Filter your data
+seurat.temp <- subset(seurat.temp, subset = nCount_RNA < 36000 & 
+                           nCount_RNA > 2000 & 
+                           nFeature_RNA > 1600 & 
+                           nFeature_RNA < 7200 &
+                           percent.mt < 20)
+
+#seurat.temp <- subset(seurat.temp, subset = nFeature_RNA > 200 & nFeature_RNA < 7200 & percent.mt < 26)
+# NOTE: you need to be careful when setting cut-offs that you're not losing unique cell populations
+
+# another QA plot
+ggplot(seurat.temp@meta.data, aes(nCount_RNA, nFeature_RNA)) +
+  geom_point(alpha = 0.7, size = 0.5) +
+  labs(x = "Total UMI counts per cell", y = "Number of genes detected")
+# Potential things to look for in the type of QA plot produced above:
+# 1. Data points in the bottom LEFT hand quadrant = low genes and UMIs per cell. May represent poor quality cells.
+# 2. Data points in the bottom RIGHT hand quadrant = low genes but high UMIs per cell. These could be dying cells, but also could represent a population of a low complexity celltype (i.e red blood cells).
+assign(sprintf("s%s.seurat", i), seurat.temp)
+}
+
+rm(seurat.temp)
+rm(seurat.temp.filtered)
+
+# Plot UMAP ----
+# it is standard practice to apply a linear transformation ('scaling') before PCA. For single cell data this includes:
+# 1. Shifting the expression of each gene, so that the mean expression across cells is 0
+# 2. Scaling the expression of each gene, so that the variance across cells is 1
+# This gives equal weight in downstream analyses, so that highly-expressed genes do not dominate
+#seurat.temp <- ScaleData(seurat.temp, verbose = FALSE)
+#seurat.temp <- RunPCA(seurat.temp, npcs = 40, verbose = FALSE)
+#seurat.temp <- RunUMAP(seurat.temp, reduction = "pca", dims = 1:40)
+#seurat.temp <- FindNeighbors(seurat.temp, reduction = "pca", dims = 1:40)
+#seurat.temp <- FindClusters(seurat.temp, resolution = 0.5)
+#DimPlot(seurat.temp, reduction = "pca", split.by = "orig.ident", label = TRUE)
+#DimPlot(seurat.temp, reduction = "umap", split.by = "orig.ident", label = TRUE)
+
+#assign(sprintf("s%s.seurat", i), seurat.temp)
+
+#rm(seurat.temp)
+```
+
+## integrate data using harmony ----
+
+```{r}
+# load sample metadata
+targets <- read.table("/Users/jess/Dropbox (RajLab)/Shared_JessL/paper/rawData/10xfatemap/studyDesign.txt", header = TRUE)
+
+
+# extract variables of interest
+sampleID <- targets$sampleID
+treatment <- targets$treatment
+AP1_inh <- targets$AP1_inh
+condition <- targets$condition
+
+# annotate seurat objects with metadata
+for (i in 1:6) {
+
+  variable = paste0("s", i,".seurat")
+  seurat.temp <- eval(parse(text = variable))
+  
+  seurat.temp$sampleID <- sampleID[i]
+  seurat.temp$treatment <- treatment[i]
+  seurat.temp$AP1_inh <- AP1_inh[i]
+  seurat.temp$condition <- condition[i]
+
+  assign(sprintf("s%s.seurat", i), seurat.temp)
+
+}
+
+raw_seurat_list <- c(s1.seurat, s2.seurat, s3.seurat, s4.seurat, s5.seurat, s6.seurat)
+
+# Merge raw samples
+merged_seurat <- merge(x = raw_seurat_list[[1]],
+		       y = raw_seurat_list[2:length(raw_seurat_list)],
+		       merge.data = TRUE)
+
+# Perform log-normalization and feature selection, as well as SCT normalization on global object
+merged_seurat <- merged_seurat %>%
+    NormalizeData() %>%
+    FindVariableFeatures(selection.method = "vst", nfeatures = 2000) %>% 
+    ScaleData() #%>%
+#    SCTransform() %>%
+#    SCTransform(vars.to.regress = c("percent.mt"))
+
+# Calculate PCs using variable features determined by SCTransform (3000 by default)
+#merged_seurat <- RunPCA(merged_seurat, assay = "SCT", npcs = 50)
+merged_seurat <- RunPCA(merged_seurat, assay = "RNA", npcs = 50)
+
+harmonized_seurat <- RunHarmony(merged_seurat, 
+				group.by.vars = c("sampleID"), 
+#				reduction = "pca", assay.use = "SCT", reduction.save = "harmony")
+        reduction = "pca", assay.use = "RNA", reduction.save = "harmony")
+
+harmonized_seurat <- RunUMAP(harmonized_seurat, reduction = "harmony", assay = "RNA", dims = 1:40)
+
+harmonized_seurat <- FindNeighbors(object = harmonized_seurat, reduction = "harmony")
+harmonized_seurat <- FindClusters(harmonized_seurat, resolution = c(0.2, 0.4, 0.6))
+
+
+
+harmonyPlot <- DimPlot(harmonized_seurat, reduction = 'umap', group.by = 'sampleID')
+harmonyPlot 
+```
+
+```{r dimplot, fig.height = 8, fig.width = 50}
+DimPlot(harmonized_seurat, reduction = 'umap', split.by = 'sampleID', pt.size = 1.2)
+
+```
+
+
+```{r tsne,fig.height = 6, fig.width = 12}
+harmonized_seurat <- harmonized_seurat %>% RunTSNE(reduction = "harmony")
+
+
+p1_tsne <- DimPlot(harmonized_seurat, reduction = "tsne", group.by = "sampleID")
+p2_tsne <- DimPlot(harmonized_seurat, reduction = "tsne", label = TRUE)
+plot_grid(p1_tsne, p2_tsne)
+
+```
+
+
+
+
+```{r}
+
+DimHeatmap(harmonized_seurat, 
+           dims = 1:9, 
+           cells = 500, 
+           balanced = TRUE)
+```
+```{r}
+print(x = harmonized_seurat[["pca"]], 
+      dims = 1:10, 
+      nfeatures = 5)
+```
+```{r}
+ElbowPlot(object = harmonized_seurat, 
+          ndims = 40)
+```
+
+```{r}
+harmonized_seurat@meta.data %>% 
+        View()
+
+# Assign identity of clusters
+Idents(object = harmonized_seurat) <- "RNA_snn_res.0.4"
+
+# Plot the UMAP
+dimplot <- DimPlot(harmonized_seurat,
+        reduction = "umap",
+        label = TRUE,
+        label.size = 5)
+
+dimplot
+
+```
+
+```{r}
+pdf("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/10xfatemap/umap.pdf", width=8, height=6, useDingbats = FALSE)
+dimplotsave <- DimPlot(harmonized_seurat,
+        reduction = "umap",
+        label = TRUE,
+        pt.size = .5)
+dimplotsave
+dev.off()
+```
+
+```{r}
+# Extract identity and sample information from seurat object to determine the number of cells per cluster per sample
+n_cells <- FetchData(harmonized_seurat, 
+                     vars = c("ident", "sampleID")) %>%
+        dplyr::count(ident, sampleID) %>%
+        tidyr::spread(ident, n)
+
+# View table
+View(n_cells)
+
+n_cells <- n_cells %>% mutate_all(~ifelse(is.na(.), 0, .))
+n_cells$totalcells <- rowSums(n_cells[, c(2:9)])
+
+n_cells_fraction <- n_cells[, c(2:10)]
+rownames(n_cells_fraction) <- n_cells$sampleID
+n_cells_fraction <- sweep(n_cells_fraction, 1, n_cells_fraction$totalcells, FUN="/")
+
+n_cells_fraction$sample = row.names(n_cells_fraction)
+n_cells_fraction_long <- pivot_longer(n_cells_fraction, cols = -sample, names_to = "seuratcluster", values_to = "fraction")
+
+n_cells_fraction_long$seuratcluster <- factor(n_cells_fraction_long$seuratcluster, levels = c("0", "1","2", "3","4", "5","6","7"))
+
+plotbycluster <- ggplot(n_cells_fraction_long, aes(x = sample, y = fraction, fill = seuratcluster)) +
+   geom_bar(stat = "identity", position = "dodge") +
+   scale_color_brewer(palette = "Set2") +
+   facet_wrap(~ seuratcluster, scales = "free", ncol = 4) +
+   theme(panel.background = element_blank(),
+        plot.background = element_blank())
+
+plotbycluster
+
+
+```
+```{r}
+pdf("/Users/jessi/Dropbox (RajLab)/Shared_JessL/paper/plots/10xfatemap/umap_clusterratios.pdf", width=8, height=6)
+plotbycluster
+dev.off()
+```
+
+```{r}
+
+ggsave(paste0(output_dir,'cluster_ratios.pdf'), plotbycluster, width = 11, height = 8.5)
+
+pdf(paste0(output_dir,"umap.pdf"), width = 10, height = 8)
+print(dimplot)
+dev.off()
+
+```
+
+```{r pc_data, fig.height = 40, fig.width = 50}
+columns <- c(paste0("PC_", 1:16),
+            "ident",
+            "umap_1", "umap_2")
+
+# Extracting this data from the seurat object
+pc_data <- FetchData(harmonized_seurat, 
+                     vars = columns)
+
+
+# Adding cluster label to center of cluster on UMAP
+umap_label <- FetchData(harmonized_seurat, 
+                        vars = c("ident", "umap_1", "umap_2"))  %>%
+  group_by(ident) %>%
+  summarise(x=mean(umap_1), y=mean(umap_2))
+  
+# Plotting a UMAP plot for each of the PCs
+map(paste0("PC_", 1:16), function(pc){
+        ggplot(pc_data, 
+               aes(umap_1, umap_2)) +
+                geom_point(aes_string(color=pc), 
+                           alpha = 0.7) +
+                scale_color_gradient(guide = FALSE, 
+                                     low = "grey90", 
+                                     high = "blue")  +
+                geom_text(data=umap_label, 
+                          aes(label=ident, x, y)) +
+                ggtitle(pc)
+}) %>% plot_grid(plotlist = .)
+```
+```{r}
+print(harmonized_seurat[["pca"]], dims = 1:5, nfeatures = 5)
+```
+
+
+
+
+
+```{r maxclusters, fig.height = 8, fig.width = 50}
+
+library(Signac)
+library(harmony)
+prop.table(table(Idents(harmonized_seurat)))
+print(harmonized_seurat)
+
+harmonized_seurat <- JoinLayers(harmonized_seurat)
+
+# find markers (all v positive markers only) in each seurat cluster
+harmonized_seurat.markers <- FindAllMarkers(harmonized_seurat, only.pos = FALSE, min.pct = 0.25, logfc.threshold = 0.25)
+write.table(harmonized_seurat.markers, file = "/Users/jess/Dropbox (RajLab)/Shared_JessL/paper/extractedData/10xfatemap/harmonized_seurat.markers_5clusters.txt", row.names = TRUE, col.names = TRUE, sep='\t')
+
+harmonized_seurat.markers.pos <- FindAllMarkers(harmonized_seurat, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+write.table(harmonized_seurat.markers.pos, file = "/Users/jess/Dropbox (RajLab)/Shared_JessL/paper/extractedData/10xfatemap/harmonized_seurat.markers.pos_5clusters.txt", row.names = TRUE, col.names = TRUE, sep='\t')
+
+filtered_harmonized_seurat.markers.pos <- dplyr::filter(harmonized_seurat.markers.pos, p_val_adj < 0.05, avg_log2FC > 1)
+
+
+# remember, we have metadata in this integrated seurat object, so you can use this to split your UMAP
+DimPlot(harmonized_seurat, reduction = "umap", 
+        split.by = "sampleID", # this facets the plot 
+        group.by = "seurat_clusters", # labels the cells with values from your group.by variable
+        label = TRUE,
+        pt.size = 2)
+
+
+save.image("~/Dropbox (RajLab)/Shared_JessL/paper/extractedData/10xfatemap/10xfatemap_harmonized.RData")
+```
+
+
+
+```{r setup2}
+library(cowplot)
+theme_set(theme_cowplot())
+library(RColorBrewer)
+library(viridis)
+
+
+umap_theme <- theme(
+  axis.line=element_blank(),
+  axis.text.x=element_blank(),
+  axis.text.y=element_blank(),
+  axis.ticks=element_blank(),
+  axis.title.x=element_blank(),
+  axis.title.y=element_blank(),
+  panel.background=element_blank(),
+  panel.border=element_blank(),
+  panel.grid.major=element_blank(),
+  panel.grid.minor=element_blank(),
+  plot.background=element_blank()
+)
+```
+
+```{r}
+#examine RNA content and mitochrondria read content
+feats <- c('nFeature_RNA', 'percent.mt', 'nCount_RNA')
+
+plot_list <- list()
+
+for(i in 1:length(feats)){
+  plot_list[[i]] <- FeaturePlot(harmonized_seurat, features=c(feats[[i]]), reduction='umap', order = TRUE) + umap_theme
+}
+
+CombinePlots(plot_list)
+
+```
+
+```{r featureplotgene, fig.height = 6, fig.width = 50}
+
+# plot genes of interest on UMAP
+FeaturePlot(harmonized_seurat, 
+            reduction = "umap", 
+            features = 'NGFR',
+            pt.size = 3, 
+            order = TRUE,
+            split.by = "sampleID",
+            min.cutoff = 'q10',
+            label = FALSE) + theme(legend.position = c(0.1,0.2))
+```
+```{r featureplotgenes, fig.height = 35, fig.width = 50}
+# we can plot more than one gene here
+my_fav_genes <- c("FOS","JUN","AXL", "NGFR","ACTA2","MLANA","PMEL","SOX10", "SERPINE1")
+FeaturePlot(harmonized_seurat, 
+            reduction = "umap", 
+            features = my_fav_genes,
+            pt.size = 2, 
+            order = TRUE,
+            split.by = "sampleID",
+            min.cutoff = 'q10',
+            label = FALSE) & theme(legend.position = c(0.1,0.2))
+
+
+
+#FeaturePlot(harmonized_seurat, reduction = "umap", features = c("SERPINE1", "SOX10"), blend = TRUE)
+
+```
+
+```{r}
+harmonized_seurat[["RNA"]] <- as(object = harmonized_seurat[["RNA"]], Class = "Assay")
+
+logNormalizedCounts <- harmonized_seurat[['RNA']]@data #normalized log counts matrix (for counts only, replace "data" by "counts")
+normalizedCounts <- harmonized_seurat[['RNA']]@counts #normalized counts matrix
+
+
+logNormalizedCounts <- as.matrix(logNormalizedCounts)
+logNormalizedCounts <- t(logNormalizedCounts)
+write.table(logNormalizedCounts, file = "/Users/jess/Dropbox (RajLab)/Shared_JessL/paper/extractedData/10xfatemap/logNormalizedCounts.txt", row.names = TRUE, col.names = TRUE, sep='\t')
+
+normalizedCounts <- as.matrix(normalizedCounts)
+normalizedCounts <- t(normalizedCounts)
+write.table(normalizedCounts, file = "/Users/jess/Dropbox (RajLab)/Shared_JessL/paper/extractedData/10xfatemap/normalizedCounts.txt", row.names = TRUE, col.names = TRUE, sep='\t')
+
+
+#logNormalizedCounts <- data.frame(logNormalizedCounts)
+#normalizedCounts <- data.frame(normalizedCounts)
+logNormalizedCounts <- read.table(file = "logNormalizedCounts.txt", header = TRUE)
+normalizedCounts <- read.table(file = "normalizedCounts.txt", header = TRUE)
+
+
+umapCoordinates <- (harmonized_seurat[['umap']])@cell.embeddings #UMAP coordinates
+umapCoordinates <- data.frame(umapCoordinates)
+meta <- harmonized_seurat@meta.data
+umapCoordinates <- merge(umapCoordinates, meta, by=0, all=TRUE)
+write.table(umapCoordinates, '/Volumes/Jessi/fatemap/Rrex-fatemap/umapCoordinates.tsv', col.names = TRUE, sep='\t') 
+  
+  
+logNormalizedCounts <- read.table(file = "/Volumes/Jessi/fatemap/Rrex-fatemap/logNormalizedCounts.txt", header = TRUE)
+normalizedCounts <- read.table(file = "/Volumes/Jessi/fatemap/Rrex-fatemap/normalizedCounts.txt", header = TRUE)
+
+#cells_count = colnames(normalizedCounts) #CellIds with Sample number as prefix
+#cells_count_cellID = sub("S\\d_", "", cells_count)
+#cells_count_sampleNum = gsub("[^S12]", "", cells_count)
+
+
+cells_UMAP = rownames(umapCoordinates) #CellIds with Sample number as prefix
+cells_UMAP_cellID = sub("S\\d_", "", cells_UMAP)
+cells_UMAP_sampleNum = gsub("[^S12]", "", cells_UMAP)
+
+logNormalizedCounts = logNormalizedCounts %>% mutate(cellID = cells_UMAP_cellID, sampleNum = cells_UMAP_sampleNum)
+normalizedCounts = normalizedCounts %>% mutate(cellID = cells_UMAP_cellID,sampleNum = cells_UMAP_sampleNum)
+
+
+YOGOlist = c("ACTG2", "ACTA2", "MYOCD", "TAGLN", "IFIT2", "OASL", "CCL3", "DDX58", "VCAM1", "PKDCC", "TDO2", "FOXF2", "NGFR", "COL9A3", "S100B", "ITGA6", "GAS7", "MLANA", "SOX10", "MITF", "PMEL", "AXL", "SERPINE1", "BGN")
+
+```
+
+```{r}
+library(ggblend)
+
+CairoPDF(file = "/Users/jessi/Dropbox (RajLab)/Shared_JessL/paper/plots/10xfatemap/umap_blend.pdf", width = 6, height = 4)
+
+umapCoordinates |>
+  ggplot(aes(umap_1, umap_2, color = RNA_snn_res.0.4, partition = RNA_snn_res.0.4)) +
+  geom_point(size = .2) * (blend("lighten") + blend("multiply", alpha = 0.5)) +
+  scale_color_brewer(palette = "Set3") +
+  labs(
+    title = "geom_point(aes(partition = set)) * (blend('lighten') + blend('multiply', alpha = 0.5))",
+    subtitle = "Two order-independent blends on one layer using the distributive law."
+  ) +
+  theme(plot.subtitle = element_text(lineheight = 1.2))
+
+dev.off()
+```
+```{r}
+library(Cairo)
+library(ggblend)
+
+cairo_pdf("/Users/jessi/Dropbox (RajLab)/Shared_JessL/paper/plots/10xfatemap/umap_blend.pdf", width = 6, height = 4)
+
+umapCoordinates |>
+  ggplot(aes(umap_1, umap_2, color = RNA_snn_res.0.4, partition = RNA_snn_res.0.4)) +
+  geom_point(size = .25, alpha = 0.5) * (blend("lighten") + blend("multiply", alpha = 0.5)) +
+  scale_color_brewer(palette = "Set2") +
+  labs(
+    title = "geom_point(aes(partition = set)) * (blend('lighten') + blend('multiply', alpha = 0.5))",
+    subtitle = "Two order-independent blends on one layer using the distributive law."
+  ) +
+  theme(plot.subtitle = element_text(lineheight = 1.2),
+        panel.background = element_blank(),
+        plot.background = element_blank(),
+  )
+
+dev.off()
+```
+
+
+

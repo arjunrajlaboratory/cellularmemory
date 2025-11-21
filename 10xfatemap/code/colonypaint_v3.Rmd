@@ -1,0 +1,608 @@
+---
+title: "colonypaint"
+output: html_document
+date: "2024-02-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyr)
+library(readr)
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(ComplexHeatmap)
+library(patchwork)
+```
+
+
+```{r}
+#barcode extraction and addition into metadata ----
+barcodes <- read_tsv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/rawData/10xfatemap/lineageBarcode/Analysis/stepThree/stepThreeStarcodeShavedReads.txt")
+
+#remove barcodes sequenced multiple times (same cellID, same UMI, same barcode)
+barcodes_distinctUMI <- barcodes %>% group_by(cellID) %>% distinct(UMI, .keep_all=TRUE)
+barcodes_distinctUMI <- dplyr::ungroup(barcodes_distinctUMI)
+
+#remove CellIDs only associated with one UMI; assuming that if real barcode, each cell would have barcodes associated with multiple UMIs
+duplicated = duplicated(barcodes_distinctUMI$cellID)
+barcodes_distinctUMI$duplicated = duplicated
+barcodes_filteredCellIDs <- barcodes_distinctUMI %>% dplyr::select(cellID, duplicated) %>% dplyr::filter(duplicated == TRUE) %>% dplyr::distinct()
+
+acceptedCellIDs <- barcodes_filteredCellIDs$cellID
+barcodes_acceptedCellIDs <- dplyr::filter(barcodes_distinctUMI, cellID %in% acceptedCellIDs) 
+
+#check that all barcodes associated with each cellID is identical; else remove that cellID entirely
+#using bc50
+barcodes_bc50 <- barcodes_acceptedCellIDs %>% dplyr::select(cellID, BC50StarcodeD8, SampleNum)
+barcodes_bc50 <- aggregate(list(numUMI=rep(1,nrow(barcodes_bc50))), barcodes_bc50, length)
+
+#remove barcodes that only show up once for each cellID (probably not real)
+barcodes_bc50_filtered <- barcodes_bc50 %>% dplyr::filter(numUMI > 1)
+duplicatedBarcode = duplicated(barcodes_bc50_filtered$cellID)
+barcodes_bc50_filtered$duplicateBarcode = duplicatedBarcode
+BC50_duplicated <- barcodes_bc50_filtered %>% dplyr::select(cellID, duplicateBarcode) %>% dplyr::filter(duplicateBarcode == TRUE) %>% dplyr::distinct()
+removedBC50 <- BC50_duplicated$cellID
+
+BC50_acceptedMatch <- barcodes_bc50_filtered[ ! barcodes_bc50_filtered$cellID %in% removedBC50, ]
+
+
+#match barcode to cellID in metadata of integrated seurat object; match by cellID and sampleNumber
+BC50_acceptedMatch_metaFormat <- BC50_acceptedMatch %>% dplyr::mutate(cellIDs = paste0(cellID, '-1_', SampleNum)) %>% dplyr::select(cellIDs, BC50StarcodeD8, SampleNum)
+
+
+#add to actual metadata
+mdata50 = BC50_acceptedMatch_metaFormat %>% pull(BC50StarcodeD8)
+names(mdata50) = BC50_acceptedMatch_metaFormat$cellIDs
+
+harmonized_seurat = AddMetaData(harmonized_seurat,
+                                metadata = mdata50,
+                                col.name = 'BC50StarcodeD8')
+```
+
+```{r}
+#try with bc40 cutoff - in case we may be losing barcodes due to sequencing error on long reads? ---- not really different, ended up using 50bp length ----
+barcodes_bc40 <- barcodes_acceptedCellIDs %>% dplyr::select(cellID, BC40StarcodeD8, SampleNum)
+barcodes_bc40 <- aggregate(list(numUMI=rep(1,nrow(barcodes_bc40))), barcodes_bc40, length)
+
+#remove barcodes that only show up once for each cellID (probably not real)
+barcodes_bc40_filtered <- barcodes_bc40 %>% dplyr::filter(numUMI > 1)
+duplicatedBarcode = duplicated(barcodes_bc40_filtered$cellID)
+barcodes_bc40_filtered$duplicateBarcode = duplicatedBarcode
+BC40_duplicated <- barcodes_bc40_filtered %>% dplyr::select(cellID, duplicateBarcode) %>% dplyr::filter(duplicateBarcode == TRUE) %>% dplyr::distinct()
+removedBC40 <- BC40_duplicated$cellID
+
+BC40_acceptedMatch <- barcodes_bc40_filtered[ ! barcodes_bc40_filtered$cellID %in% removedBC40, ]
+
+
+#match barcode to cellID in metadata of integrated seurat object; match by cellID and sampleNumber
+BC40_acceptedMatch_metaFormat <- BC40_acceptedMatch %>% dplyr::mutate(cellIDs = paste0(cellID, '-1_', SampleNum)) %>% dplyr::select(cellIDs, BC40StarcodeD8, SampleNum)
+
+
+#add to actual metadata
+mdata40 = BC40_acceptedMatch_metaFormat %>% pull(BC40StarcodeD8)
+names(mdata40) = BC40_acceptedMatch_metaFormat$cellIDs
+
+harmonized_seurat = AddMetaData(harmonized_seurat,
+                                metadata = mdata40,
+                                col.name = 'BC40StarcodeD8')
+
+
+```
+
+```{r}
+# pull barcode info per condition ----
+
+meta <- harmonized_seurat@meta.data
+
+for (i in 1:6) {
+  
+  meta.temp <- meta %>% dplyr::filter(condition == i)
+  assign(sprintf("s%s.meta", i), meta.temp)
+  
+}
+
+#classify barcodes (starcode 50)
+BC <- data.frame(unique(na.omit(meta$BC50StarcodeD8)))
+colnames(BC) <- "BC50StarcodeD8"
+BC_ranked <- na.omit(meta %>% group_by(BC50StarcodeD8) %>% summarise(n = n()))
+
+#add columns of if barcode is in each condition
+BC <- BC %>% dplyr::mutate(S1 = BC$BC50StarcodeD8 %in% s1.meta$BC50StarcodeD8)
+BC <- BC %>% dplyr::mutate(S2 = BC$BC50StarcodeD8 %in% s2.meta$BC50StarcodeD8)
+BC <- BC %>% dplyr::mutate(S3 = BC$BC50StarcodeD8 %in% s3.meta$BC50StarcodeD8)
+BC <- BC %>% dplyr::mutate(S4 = BC$BC50StarcodeD8 %in% s4.meta$BC50StarcodeD8)
+BC <- BC %>% dplyr::mutate(S5 = BC$BC50StarcodeD8 %in% s5.meta$BC50StarcodeD8)
+BC <- BC %>% dplyr::mutate(S6 = BC$BC50StarcodeD8 %in% s6.meta$BC50StarcodeD8)
+
+BC <- BC %>% dplyr::mutate(lowOnly_ap1dependent = !(BC$BC50StarcodeD8 %in% s1.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s2.meta$BC50StarcodeD8) & !(BC$BC50StarcodeD8 %in% s3.meta$BC50StarcodeD8) & !(BC$BC50StarcodeD8 %in% s4.meta$BC50StarcodeD8) & !(BC$BC50StarcodeD8 %in% s5.meta$BC50StarcodeD8) & !(BC$BC50StarcodeD8 %in% s6.meta$BC50StarcodeD8))
+BC <- BC %>% dplyr::mutate(lowOnly_ap1independent = !(BC$BC50StarcodeD8 %in% s1.meta$BC50StarcodeD8) & BC$BC50StarcodeD8 %in% s2.meta$BC50StarcodeD8 & !(BC$BC50StarcodeD8 %in% s3.meta$BC50StarcodeD8) & !(BC$BC50StarcodeD8 %in% s4.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s5.meta$BC50StarcodeD8) & !(BC$BC50StarcodeD8 %in% s6.meta$BC50StarcodeD8))
+BC <- BC %>% dplyr::mutate(low = (BC$BC50StarcodeD8 %in% s2.meta$BC50StarcodeD8))
+BC <- BC %>% dplyr::mutate(high = (BC$BC50StarcodeD8 %in% s1.meta$BC50StarcodeD8))
+BC <- BC %>% dplyr::mutate(lowandhigh = (BC$BC50StarcodeD8 %in% s1.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s2.meta$BC50StarcodeD8)) 
+BC <- BC %>% dplyr::mutate(lowandlowtohigh = (BC$BC50StarcodeD8 %in% s3.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s2.meta$BC50StarcodeD8)) 
+BC <- BC %>% dplyr::mutate(adapted_ap1independent = !(BC$BC50StarcodeD8 %in% s1.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s2.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s3.meta$BC50StarcodeD8) & !(BC$BC50StarcodeD8 %in% s4.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s5.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s6.meta$BC50StarcodeD8))
+BC <- BC %>% dplyr::mutate(adapted_ap1dependent = !(BC$BC50StarcodeD8 %in% s1.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s2.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s3.meta$BC50StarcodeD8) & !(BC$BC50StarcodeD8 %in% s4.meta$BC50StarcodeD8) & !(BC$BC50StarcodeD8 %in% s6.meta$BC50StarcodeD8))
+BC <- BC %>% dplyr::mutate(adapted = !(BC$BC50StarcodeD8 %in% s1.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s2.meta$BC50StarcodeD8) & (BC$BC50StarcodeD8 %in% s3.meta$BC50StarcodeD8))
+                             
+BC <- left_join(BC, BC_ranked)
+
+
+
+```
+
+```{r}
+harmonized_seurat[["RNA"]] <- as(object = harmonized_seurat[["RNA"]], Class = "Assay")
+
+logNormalizedCounts <- harmonized_seurat[['RNA']]@data #normalized log counts matrix (for counts only, replace "data" by "counts")
+normalizedCounts <- harmonized_seurat[['RNA']]@counts #normalized counts matrix
+
+
+logNormalizedCounts <- as.matrix(logNormalizedCounts)
+logNormalizedCounts <- t(logNormalizedCounts)
+write.table(logNormalizedCounts, file = "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/10xfatemap/logNormalizedCounts.txt", row.names = TRUE, col.names = TRUE, sep='\t')
+
+normalizedCounts <- as.matrix(normalizedCounts)
+normalizedCounts <- t(normalizedCounts)
+write.table(normalizedCounts, file = "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/10xfatemap/normalizedCounts.txt", row.names = TRUE, col.names = TRUE, sep='\t')
+
+
+logNormalizedCounts <- data.frame(logNormalizedCounts)
+normalizedCounts <- data.frame(normalizedCounts)
+logNormalizedCounts <- read.table(file = "logNormalizedCounts.txt", header = TRUE)
+normalizedCounts <- read.table(file = "normalizedCounts.txt", header = TRUE)
+
+
+umapCoordinates <- (harmonized_seurat[['umap']])@cell.embeddings #UMAP coordinates
+umapCoordinates <- data.frame(umapCoordinates)
+meta <- harmonized_seurat@meta.data
+umapCoordinates <- merge(umapCoordinates, meta, by=0, all=TRUE)
+write.table(umapCoordinates, file = "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/10xfatemap/umapCoordinates.txt", row.names = TRUE, col.names = TRUE, sep='\t')  
+  
+logNormalizedCounts <- read.table(file = "/Volumes/Jessi/fatemap/Rrex-fatemap/logNormalizedCounts.txt", header = TRUE)
+normalizedCounts <- read.table(file = "/Volumes/Jessi/fatemap/Rrex-fatemap/normalizedCounts.txt", header = TRUE)
+
+
+cells_UMAP = rownames(umapCoordinates) #CellIds with Sample number as prefix
+cells_UMAP_cellID = sub("S\\d_", "", cells_UMAP)
+cells_UMAP_sampleNum = gsub("[^S12]", "", cells_UMAP)
+
+logNormalizedCounts = logNormalizedCounts %>% mutate(cellID = cells_UMAP_cellID, sampleNum = cells_UMAP_sampleNum)
+normalizedCounts = normalizedCounts %>% mutate(cellID = cells_UMAP_cellID,sampleNum = cells_UMAP_sampleNum)
+
+
+YOGOlist = c("ACTG2", "ACTA2", "MYOCD", "TAGLN", "IFIT2", "OASL", "CCL3", "DDX58", "VCAM1", "PKDCC", "TDO2", "FOXF2", "NGFR", "COL9A3", "S100B", "ITGA6", "GAS7", "MLANA", "SOX10", "MITF", "PMEL", "AXL", "SERPINE1", "BGN")
+```
+
+```{r}
+create_lpr_theme <- function(){
+  lpr_theme <- ggplot2::theme_bw() + ggplot2::theme_classic() +
+    ggplot2::theme(text = ggplot2::element_text(size = 32),
+                   plot.title = ggplot2::element_text(face = "bold",
+                                                      hjust = 0.5, size = ggplot2::rel(0.5)), axis.text = ggplot2::element_text(size = ggplot2::rel(0.8),
+                                                                                                                                color = "black", face = "bold"), axis.title = ggplot2::element_text(size = ggplot2::rel(0.6),
+                                                                                                                                                                                                    face = "bold"), legend.title = ggplot2::element_blank(),
+                   legend.position = "bottom", axis.line = element_line(size = 2),
+                   axis.ticks = element_line(size = 2), strip.background = element_rect(size = 2),
+                   strip.text = element_text(size = ggplot2::rel(0.7),
+                                             face = "bold"))
+  return(lpr_theme)
+}
+
+```
+
+```{r fig0, fig.height = 34, fig.width = 50}
+FeaturePlot(harmonized_seurat, 
+            reduction = "umap", 
+            features = c("NGFR","MLANA","ACTA2", "JUNB"),
+            pt.size = 2, 
+            order = TRUE,
+            split.by = "condition",
+            min.cutoff = 'q10',
+            label = FALSE) & theme(legend.position = c(0.8,0.25))
+
+```
+
+```{r fig1, fig.height = 4, fig.width = 30}
+testBC1 <- "ATAGTTCAAGGAGGTCGAGATGCACATCGAGTTGTTCTACTTGTAGCTCG"
+
+testBC1 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC1)
+testBCplot1 <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC1, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBCplot1 + facet_wrap(~condition, nrow=1)
+```
+
+```{r fig2, fig.height = 4, fig.width = 30}
+testBC2 <- "ATAGTACCTCATGGAGGTCTTGTAGGTGGTGGTGTTGCTGCTGATCAACG"
+
+testBC2 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC2)
+testBC2plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC2, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC2plot + facet_wrap(~condition, nrow=1)
+```
+
+```{r fig3, fig.height = 4, fig.width = 30}
+testBC3 <- "ATTGGAGCTGTTCAACTAGCTCTAGGTCATGATGTTCTTCATGTACCTGG"
+
+testBC3 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC3)
+testBC3plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC3, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC3plot + facet_wrap(~condition, nrow=1)
+```
+
+```{r fig4, fig.height = 4, fig.width = 30}
+testBC4 <- "ATACCTGCACTACAACGTGGACTAGCTGTTCGTCTTCCAGCTGTTGAAGG"
+
+testBC4 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC4)
+testBC4plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC4, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC4plot + facet_wrap(~condition, nrow=1)
+```
+
+```{r fig5, fig.height = 4, fig.width = 30}
+testBC5 <- "ATTGTTGTTCATCGTCGTCTTGGTGTACCTCTACCTCTTCTTGATGGAGC"
+
+testBC5 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC5)
+testBC5plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC5, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC5plot + facet_wrap(~condition, nrow=1)
+```
+
+```{r fig6, fig.height = 4, fig.width = 30}
+testBC6 <- "ATTCTAGCACTAGTTCGTCTACGTCTACATGAAGTAGAAGCTCGTCGTCG"
+
+testBC6 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC6)
+testBC6plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC6, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC6plot + facet_wrap(~condition, nrow=1)
+```
+
+```{r fig7, fig.height = 4, fig.width = 30}
+testBC7 <- "ATTCAAGGTGGACCTCTTGATCTAGGAGTAGGTCATGCTGTTCTTGTAGG"
+
+testBC7 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC7)
+testBC7plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.2) + geom_point(data=testBC7, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC7plot + facet_wrap(~condition, nrow=1)  + theme_minimal()
+```
+```{r}
+pdf("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/10xfatemap/colonypaintexample.pdf", width=300, height=40)
+testBC7plot + facet_wrap(~condition, nrow=1)  + theme_minimal()
+dev.off()
+
+```
+
+
+
+```{r fig8, fig.height = 4, fig.width = 30}
+testBC8 <- "ATACTAGTTCCTGGTGCACAAGGTCAAGGTGAAGGAGTTCATGTTGGAGA"
+
+testBC8 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC8)
+testBC8plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC8, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC8plot + facet_wrap(~condition, nrow=1)
+```
+
+```{r fig9, fig.height = 4, fig.width = 30}
+testBC9 <- "ATTGTTCGTCTACGTCCTGCACCTCCTGTTCTTCTTCGTCCTCATCGAGT"
+
+testBC9 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC9)
+testBC9plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC9, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC9plot + facet_wrap(~condition, nrow=1)
+```
+
+```{r fig10, fig.height = 4, fig.width = 30}
+testBC10 <- "ATTCGACTAGATGTTCCTCTAGAAGCTCTACTTCTTGTTGCAGCAGATGG"
+
+testBC10 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC10)
+testBC10plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC10, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC10plot + facet_wrap(~condition, nrow=1)
+```
+```{r fig11, fig.height = 4, fig.width = 30}
+testBC11 <- "ATAGTAGTACGAGGAGGACTTCTTGGTGCTGTTGGACGAGGTCGTGTTCA"
+
+testBC11 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC11)
+testBC11plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC11, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC11plot + facet_wrap(~condition, nrow=1)
+```
+
+```{r}
+p <- testBC11plot + facet_wrap(~condition, nrow=1) + theme_minimal()
+
+# Save the plot using ggsave
+ggsave(filename = "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/10xfatemap/colonypaintexample2.pdf", 
+       plot = p, width = 23.2, height = 3.4, useDingbats = FALSE)
+```
+
+
+```{r fig12, fig.height = 4, fig.width = 30}
+testBC12 <- "ATTGTAGTAGGAGAACATGTAGTTCGACCTCATGCACGTGAAGTTGTTGG"
+
+testBC12 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC12)
+testBC12plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC12, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBC12plot + facet_wrap(~condition, nrow=1)
+```
+
+```{r heatmaptest, fig.height = 6, fig.width = 6}
+aggregated_data <- testBC %>%
+  group_by(sampleID, RNA_snn_res.0.4) %>%
+  summarise(Count = n())
+
+complete_data <- expand.grid(sampleID = unique(umapCoordinates$sampleID),
+                             RNA_snn_res.0.4 = unique(umapCoordinates$RNA_snn_res.0.4))
+
+# Merge to ensure all combinations are present, filling missing combinations with 0
+full_data <- merge(complete_data, aggregated_data, by = c("sampleID", "RNA_snn_res.0.4"), all.x = TRUE)
+full_data$Count[is.na(full_data$Count)] <- 0
+full_data$Count <- as.numeric(full_data$Count)
+
+heatmap_data <- full_data %>%
+  pivot_wider(names_from = RNA_snn_res.0.4, values_from = Count, values_fill = list(Count = 0))
+
+# Remove any non-numeric columns (e.g., sampleID if it's pulled into the matrix)
+heatmap_matrix <- as.matrix(heatmap_data[,-1])
+
+# Set row names separately to avoid including them in the numeric matrix
+rownames(heatmap_matrix) <- heatmap_data$sampleID
+
+# Transpose the data to have sampleID as rows and RNA_snn_res.0.4 as columns
+#heatmap_matrix <- as.matrix(t(pivoted_data))
+
+heatmap_matrix_sorted <- heatmap_matrix[order(rownames(heatmap_matrix)), ]
+
+
+col_fun <- colorRamp2(c(min(heatmap_matrix_sorted, na.rm = TRUE), max(heatmap_matrix_sorted, na.rm = TRUE)), c("#00616C","#CCB61D"))
+
+                            
+                            
+Heatmap(heatmap_matrix_sorted,
+        name = "Count",
+        col = col_fun,
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        show_row_names = TRUE,
+        show_column_names = TRUE,
+        column_names_side = "bottom",
+        row_names_side = "left")
+
+
+```
+
+```{r heatmaps02, fig.height = 4, fig.width = 30}
+# Function to generate heatmap for a given dataset
+generate_heatmap <- function(testBC, umapCoordinates, name) {
+  aggregated_data <- testBC %>%
+    group_by(sampleID, RNA_snn_res.0.2) %>%
+    summarise(Count = n(), .groups = 'drop')
+  
+  complete_data <- expand.grid(sampleID = unique(umapCoordinates$sampleID),
+                               RNA_snn_res.0.2 = unique(umapCoordinates$RNA_snn_res.0.2))
+  
+  # Merge to ensure all combinations are present, filling missing combinations with 0
+  full_data <- merge(complete_data, aggregated_data, by = c("sampleID", "RNA_snn_res.0.2"), all.x = TRUE)
+  full_data$Count[is.na(full_data$Count)] <- 0
+  full_data$Count <- as.numeric(full_data$Count)
+  
+  heatmap_data <- full_data %>%
+    pivot_wider(names_from = RNA_snn_res.0.2, values_from = Count, values_fill = list(Count = 0))
+  
+  # Remove any non-numeric columns (e.g., sampleID if it's pulled into the matrix)
+  heatmap_matrix <- as.matrix(heatmap_data[,-1])
+  
+  # Set row names separately to avoid including them in the numeric matrix
+  rownames(heatmap_matrix) <- heatmap_data$sampleID
+  
+  heatmap_matrix_sorted <- heatmap_matrix[order(rownames(heatmap_matrix)), ]
+  
+  col_fun <- colorRamp2(c(min(heatmap_matrix_sorted, na.rm = TRUE), max(heatmap_matrix_sorted, na.rm = TRUE)), c("#00616C","#CCB61D"))
+  
+  Heatmap(heatmap_matrix_sorted,
+          name = name,
+          col = col_fun,
+          cluster_rows = FALSE,
+          cluster_columns = FALSE,
+          show_row_names = TRUE,
+          show_column_names = TRUE,
+          column_names_side = "top",
+          row_names_side = "left")
+}
+
+# Assuming 'umapCoordinates' is common and available for all datasets
+# Replace 'your_data_list' with the actual list of your datasets
+your_data_list <- list(testBC1 = testBC1, testBC2 = testBC2, testBC3 = testBC3, testBC4 = testBC4, testBC5 = testBC5, testBC6 = testBC6, testBC7 = testBC7, testBC8 = testBC8, testBC9 = testBC9, testBC10 = testBC10,testBC10 = testBC11,testBC10 = testBC12)
+
+# Generate and combine the heatmaps
+combined_heatmaps <- NULL
+for (i in seq_along(your_data_list)) {
+  testBC <- your_data_list[[i]]
+  heatmap <- generate_heatmap(testBC, umapCoordinates, paste0("BC", i))
+  if(is.null(combined_heatmaps)) {
+    combined_heatmaps <- heatmap
+  } else {
+    combined_heatmaps <- combined_heatmaps + heatmap
+  }
+}
+
+# Plot the combined heatmap
+if(!is.null(combined_heatmaps)) {
+  plot(combined_heatmaps)
+}
+```
+
+```{r heatmaps04, fig.height = 4, fig.width = 30}
+# Function to generate heatmap for a given dataset
+generate_heatmap  <- function(testBC, umapCoordinates, name) {
+  aggregated_data <- testBC %>%
+    group_by(sampleID, RNA_snn_res.0.4) %>%
+    summarise(Count = n(), .groups = 'drop')
+  
+  complete_data <- expand.grid(sampleID = unique(umapCoordinates$sampleID),
+                               RNA_snn_res.0.4 = unique(umapCoordinates$RNA_snn_res.0.4))
+  
+  # Merge to ensure all combinations are present, filling missing combinations with 0
+  full_data <- merge(complete_data, aggregated_data, by = c("sampleID", "RNA_snn_res.0.4"), all.x = TRUE)
+  full_data$Count[is.na(full_data$Count)] <- 0
+  full_data$Count <- as.numeric(full_data$Count)
+  
+  heatmap_data <- full_data %>%
+    pivot_wider(names_from = RNA_snn_res.0.4, values_from = Count, values_fill = list(Count = 0))
+  
+  # Remove any non-numeric columns (e.g., sampleID if it's pulled into the matrix)
+  heatmap_matrix <- as.matrix(heatmap_data[,-1])
+  
+  # Set row names separately to avoid including them in the numeric matrix
+  rownames(heatmap_matrix) <- heatmap_data$sampleID
+  
+  heatmap_matrix_sorted <- heatmap_matrix[order(rownames(heatmap_matrix)), ]
+  
+  col_fun <- colorRamp2(c(min(heatmap_matrix_sorted, na.rm = TRUE), max(heatmap_matrix_sorted, na.rm = TRUE)), c("#00616C","#CCB61D"))
+  
+  Heatmap(heatmap_matrix_sorted,
+          name = name,
+          col = col_fun,
+          cluster_rows = FALSE,
+          cluster_columns = FALSE,
+          show_row_names = TRUE,
+          show_column_names = TRUE,
+          column_names_side = "top",
+          row_names_side = "left")
+}
+
+# Assuming 'umapCoordinates' is common and available for all datasets
+# Replace 'your_data_list' with the actual list of your datasets
+your_data_list <- list(testBC1 = testBC1, testBC2 = testBC2, testBC3 = testBC3, testBC4 = testBC4, testBC5 = testBC5, testBC6 = testBC6, testBC7 = testBC7, testBC8 = testBC8, testBC9 = testBC9, testBC10 = testBC10,testBC10 = testBC11,testBC10 = testBC12)
+
+# Generate and combine the heatmaps
+combined_heatmaps <- NULL
+for (i in seq_along(your_data_list)) {
+  testBC <- your_data_list[[i]]
+  heatmap <- generate_heatmap(testBC, umapCoordinates, paste0("BC", i))
+  if(is.null(combined_heatmaps)) {
+    combined_heatmaps <- heatmap
+  } else {
+    combined_heatmaps <- combined_heatmaps + heatmap
+  }
+}
+
+# Plot the combined heatmap
+if(!is.null(combined_heatmaps)) {
+  plot(combined_heatmaps)
+}
+```
+```{r}
+pdf("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots/10xfatemap/colonyexampleheatmap_res04.pdf", width=16, height=2)
+plot(combined_heatmaps)
+dev.off()
+
+```
+
+
+```{r heatmaps06, fig.height = 4, fig.width = 30}
+# Function to generate heatmap for a given dataset
+generate_heatmap <- function(testBC, umapCoordinates, name) {
+  aggregated_data <- testBC %>%
+    group_by(sampleID, RNA_snn_res.0.6) %>%
+    summarise(Count = n(), .groups = 'drop')
+  
+  complete_data <- expand.grid(sampleID = unique(umapCoordinates$sampleID),
+                               RNA_snn_res.0.6 = unique(umapCoordinates$RNA_snn_res.0.6))
+  
+  # Merge to ensure all combinations are present, filling missing combinations with 0
+  full_data <- merge(complete_data, aggregated_data, by = c("sampleID", "RNA_snn_res.0.6"), all.x = TRUE)
+  full_data$Count[is.na(full_data$Count)] <- 0
+  full_data$Count <- as.numeric(full_data$Count)
+  
+  heatmap_data <- full_data %>%
+    pivot_wider(names_from = RNA_snn_res.0.6, values_from = Count, values_fill = list(Count = 0))
+  
+  # Remove any non-numeric columns (e.g., sampleID if it's pulled into the matrix)
+  heatmap_matrix <- as.matrix(heatmap_data[,-1])
+  
+  # Set row names separately to avoid including them in the numeric matrix
+  rownames(heatmap_matrix) <- heatmap_data$sampleID
+  
+  heatmap_matrix_sorted <- heatmap_matrix[order(rownames(heatmap_matrix)), ]
+  
+  col_fun <- colorRamp2(c(min(heatmap_matrix_sorted, na.rm = TRUE), max(heatmap_matrix_sorted, na.rm = TRUE)), c("#00616C","#CCB61D"))
+  
+  Heatmap(heatmap_matrix_sorted,
+          name = name,
+          col = col_fun,
+          cluster_rows = FALSE,
+          cluster_columns = FALSE,
+          show_row_names = TRUE,
+          show_column_names = TRUE,
+          column_names_side = "top",
+          row_names_side = "left")
+}
+
+# Assuming 'umapCoordinates' is common and available for all datasets
+# Replace 'your_data_list' with the actual list of your datasets
+your_data_list <- list(testBC1 = testBC1, testBC2 = testBC2, testBC3 = testBC3, testBC4 = testBC4, testBC5 = testBC5, testBC6 = testBC6, testBC7 = testBC7, testBC8 = testBC8, testBC9 = testBC9, testBC10 = testBC10,testBC10 = testBC11,testBC10 = testBC12)
+
+# Generate and combine the heatmaps
+combined_heatmaps <- NULL
+for (i in seq_along(your_data_list)) {
+  testBC <- your_data_list[[i]]
+  heatmap <- generate_heatmap(testBC, umapCoordinates, paste0("BC", i))
+  if(is.null(combined_heatmaps)) {
+    combined_heatmaps <- heatmap
+  } else {
+    combined_heatmaps <- combined_heatmaps + heatmap
+  }
+}
+
+# Plot the combined heatmap
+if(!is.null(combined_heatmaps)) {
+  plot(combined_heatmaps)
+}
+```
+
+
+
+
+```{r}
+
+meta <- harmonized_seurat@meta.data
+
+for (i in 1:6) {
+  
+  meta.temp <- meta %>% dplyr::filter(condition == i)
+  assign(sprintf("s%s.meta", i), meta.temp)
+  
+}
+#classify barcodes (starcode 50)
+BC40 <- data.frame(unique(na.omit(meta$BC40StarcodeD8)))
+colnames(BC40) <- "BC40StarcodeD8"
+BC40_ranked <- na.omit(meta %>% group_by(BC40StarcodeD8) %>% summarise(n = n()))
+
+#add columns of if barcode is in each condition
+BC40 <- BC40 %>% dplyr::mutate(S1 = BC40$BC40StarcodeD8 %in% s1.meta$BC40StarcodeD8)
+BC40 <- BC40 %>% dplyr::mutate(S2 = BC40$BC40StarcodeD8 %in% s2.meta$BC40StarcodeD8)
+BC40 <- BC40 %>% dplyr::mutate(S3 = BC40$BC40StarcodeD8 %in% s3.meta$BC40StarcodeD8)
+BC40 <- BC40 %>% dplyr::mutate(S4 = BC40$BC40StarcodeD8 %in% s4.meta$BC40StarcodeD8)
+BC40 <- BC40 %>% dplyr::mutate(S5 = BC40$BC40StarcodeD8 %in% s5.meta$BC40StarcodeD8)
+BC40 <- BC40 %>% dplyr::mutate(S6 = BC40$BC40StarcodeD8 %in% s6.meta$BC40StarcodeD8)
+
+BC40 <- BC40 %>% dplyr::mutate(highOnly = BC40$BC40StarcodeD8 %in% s1.meta$BC40StarcodeD8 & !(BC40$BC40StarcodeD8 %in% s2.meta$BC40StarcodeD8) & !(BC40$BC40StarcodeD8 %in% s3.meta$BC40StarcodeD8))
+BC40 <- BC40 %>% dplyr::mutate(lowOnly = !(BC40$BC40StarcodeD8 %in% s1.meta$BC40StarcodeD8) & BC40$BC40StarcodeD8 %in% s2.meta$BC40StarcodeD8 & !(BC40$BC40StarcodeD8 %in% s3.meta$BC40StarcodeD8))
+BC40 <- BC40 %>% dplyr::mutate(adapted = !(BC40$BC40StarcodeD8 %in% s1.meta$BC40StarcodeD8) & BC40$BC40StarcodeD8 %in% s3.meta$BC40StarcodeD8)
+BC40 <- BC40 %>% dplyr::mutate(adaptedAP1dependent = !(BC40$BC40StarcodeD8 %in% s1.meta$BC40StarcodeD8) & BC40$BC40StarcodeD8 %in% s3.meta$BC40StarcodeD8 & !(BC40$BC40StarcodeD8 %in% s6.meta$BC40StarcodeD8))
+
+BC40 <- left_join(BC40, BC40_ranked)
+
+umapCoordinates <- (harmonized_seurat[['umap']])@cell.embeddings #UMAP coordinates
+umapCoordinates <- data.frame(umapCoordinates)
+meta <- harmonized_seurat@meta.data
+umapCoordinates <- merge(umapCoordinates, meta, by=0, all=TRUE)
+```
+
+```{r fig9, fig.height = 6, fig.width = 30}
+testBC <- "ATTGTTCCTGCTGTAGATCTTCTTCCTGTTGATCCTGCAC"
+
+testBC <- dplyr::filter(umapCoordinates, BC40StarcodeD8 == testBC)
+testBCplot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC, aes(x=umap_1, y=umap_2), color='red', size=3)
+testBCplot + facet_wrap(~condition, nrow=1)
+```
+
+
+
+
+
+

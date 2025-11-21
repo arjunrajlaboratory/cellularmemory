@@ -1,0 +1,73 @@
+---
+title: "SydneyNatureScript"
+output: html_notebook
+---
+
+```{r,echo=FALSE}
+load("../extractedData/myCounts.RData")
+
+library(DESeq2)
+atacDDS <- DESeqDataSetFromMatrix(assay(filtered_myCounts), metaData, ~sample.actual, rowRanges = rowRanges(myCounts))
+atacDDS <- DESeq(atacDDS)
+
+# Creates heatmap for all the peaks for all of the samples
+peakRanges <- rowRanges(filtered_myCounts)
+library(BSgenome.Hsapiens.UCSC.hg19)
+peakRangesCentered <- resize(peakRanges, fix = "center", width = 100)
+peakSeqs <- getSeq(BSgenome.Hsapiens.UCSC.hg19, peakRangesCentered)
+names(peakSeqs) <- as.character(peakRangesCentered)
+
+library(JASPAR2020)
+library(TFBSTools)
+library(motifmatchr)
+library(chromVAR)
+library(pheatmap)
+library(BSgenome.Hsapiens.UCSC.hg19)
+
+
+opts <- list()
+opts[["tax_group"]] <- "vertebrates"
+opts[["collection"]] <- "CORE"
+opts[["all_versions"]] <- FALSE
+motifsToScan <- getMatrixSet(JASPAR2020, opts)
+
+subset_myCounts <- filtered_myCounts[rowSums(assay(filtered_myCounts)) > 5, ]
+subset_myCounts <- addGCBias(subset_myCounts, genome = BSgenome.Hsapiens.UCSC.hg19)
+motif_ix <- matchMotifs(motifsToScan, subset_myCounts, genome = BSgenome.Hsapiens.UCSC.hg19)
+
+include_rows <- atacDDS$sample.actual %in% c("neg")
+control_myCounts <- subset_myCounts[,include_rows]
+
+# Compute deviations using the derived expectations
+deviations <- computeDeviations(object = subset_myCounts, 
+                                annotations = motif_ix, 
+                                background_peaks = getBackgroundPeaks(subset_myCounts), 
+                                expectation = computeExpectations(control_myCounts))
+
+variability_Known <- computeVariability(deviations)
+devZscores <- deviationScores(deviations)
+variability_Known <- variability_Known[order(variability_Known$p_value), ]
+topVariable <- variability_Known[1:50, ]
+devTop <- merge(topVariable[, 1, drop = FALSE], devZscores, by = 0)
+
+devToPlot <- as.matrix(devTop[, -c(1:2)])
+rownames(devToPlot) <- devTop[, 2]
+name_mapping <- setNames(metaData$sample.actual, metaData$bamName)
+
+# Add replicate information to the column names of devToPlot
+replicate_mapping <- setNames(metaData$replicate, metaData$bamName)
+replicate_column <- replicate_mapping[colnames(devToPlot)]
+colnames(devToPlot) <- paste0(name_mapping[colnames(devToPlot)], "_(", replicate_column, ")")
+desired_order <- c("neg_(p9)","neg_(p14)","mix_noDrug_(p9)","mix_noDrug_(p14)",
+                   "mix_week1_(p9)","mix_week1_(p14)","mix_week4_(p9)","mix_week4_(p14)",
+                   "EGFR_noDrug_(p9)","EGFR_noDrug_(p14)","EGFR_week1_(p9)","EGFR_week1_(p14)",
+                   "EGFR_week4_(p9)","EGFR_week4_(p14)")
+
+devToPlot <- devToPlot[, desired_order] 
+custom_palette <- colorRampPalette(c("#707071","#ECAB21","#C23B1C")) (50)
+# pheatmap(devToPlot, cluster_cols = FALSE)
+
+pdf("../plots/allpeaks_heatmap.pdf", width = 10, height = 10)
+pheatmap(devToPlot, cluster_cols = FALSE,color=custom_palette)
+dev.off()
+```
