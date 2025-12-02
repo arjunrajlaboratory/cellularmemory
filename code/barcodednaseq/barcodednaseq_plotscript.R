@@ -16,53 +16,56 @@ data_list <- lapply(files, function(file) {
 data <- bind_rows(data_list)
 
  
+# Create a new grouping variable for statistical analysis
 filtered_data <- data %>%
-  filter(Name %in% c("c_bc30", "b_bc30", "d_bc30")) %>%
-  mutate(Name = factor(Name, levels = c("b_bc30", "c_bc30", "d_bc30")))
+  filter(Name %in% c("a_bc30","c_bc30", "b_bc30", "d_bc30")) %>%
+  mutate(
+    Name = factor(Name, levels = c("a_bc30", "c_bc30", "b_bc30", "d_bc30")),
+    # Create statistical grouping: a_bc30 and c_bc30 are combined
+    Name_stat = factor(
+      case_when(
+        Name %in% c("a_bc30", "c_bc30") ~ "ac_bc30",
+        TRUE ~ as.character(Name)
+      ),
+      levels = c("ac_bc30", "b_bc30", "d_bc30")
+    )
+  )
 
-# Plot all in one with groups
-# Define the plot with adjusted bar spacing
+# Plot with individual groups displayed
 plot <- ggplot(filtered_data, aes(x = Name, y = Length, fill = Experiment)) +
-  geom_bar(stat = "identity", position = position_dodge(width = .8), width = 0.7) +  # Adjust dodge width
+  geom_bar(stat = "identity", position = position_dodge(width = .8), width = 0.7) +
   labs(title = "Length Comparison Across Experiments", x = "Category", y = "Length") +
   theme_minimal()
 
-# Display the plot
+# Display and save the plot
 plot
-
-# Filename for the plot
 filename <- "Grouped_Bar_Graph.pdf"
-
-# Save the plot
 ggsave(filename = file.path(output_directory, filename), plot = plot, width = 10, height = 6)
-
 
 library(nlme)
 library(emmeans)
 library(car)
 
-
-# Fit mixed-effects model with Experiment as random effect
-model <- lme(Length ~ Name, random = ~ 1 | Experiment, data = filtered_data)
+# Fit mixed-effects model using the statistical grouping variable
+model <- lme(Length ~ Name_stat, random = ~ 1 | Experiment, data = filtered_data)
 
 # Display model summary
 summary(model)
 
 # Check model assumptions
-plot(model)  # Residual plots
+plot(model)
 qqnorm(residuals(model, type = "pearson"))
 qqline(residuals(model, type = "pearson"))
+
 # Check for normality of residuals
-residuals <- residuals(model)
-shapiro.test(residuals)
+shapiro.test(residuals(model, type = "pearson"))
 
-# Check for homogeneity of variances
-leveneTest(Length ~ Name, data = filtered_data)
+# Check for homogeneity of variances (using statistical grouping)
+leveneTest(Length ~ Name_stat, data = filtered_data)
 
-# Perform pairwise comparisons using emmeans
-emmeans_results <- emmeans(model, pairwise ~ Name, adjust = "holm")
+# Perform pairwise comparisons on the statistical groups
+emmeans_results <- emmeans(model, pairwise ~ Name_stat, adjust = "holm")
 print(emmeans_results)
-
 
 
 data_wide <- spread(filtered_data, Name, Length)
