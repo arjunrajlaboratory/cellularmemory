@@ -4,7 +4,7 @@ library(tidyverse)
 library(dplyr)
 
 # Set the path to the folder containing .tif files
-folder_path_1 <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/trametinibtimecourse/rep1" # Replace with your folder path
+folder_path_1 <- "/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/trametinibtimecourse/rep1/endpoint" # Replace with your folder path
 
 # List all .tif files in the folder
 file_names <- list.files(folder_path_1, pattern = "\\.tif$", full.names = TRUE)

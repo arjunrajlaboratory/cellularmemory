@@ -55,7 +55,7 @@ ggsave(c4plotfile, plot = c4plot, width = 10, height = 10, dpi = 300)
 
 # Step 1: Read the Data
 # Replace the path with the actual path of your data file
-b1 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/nikon_be5/20221130_103711_074__WellB1_ChannelYFP,A594_Seq0003 - Stitched.csv", sep=",")
+b1 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/nikon/20221130_103711_074__WellB1_ChannelYFP,A594_Seq0003 - Stitched.csv", sep=",")
 b1_background <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/nikon/background 20221130_103711_074__WellB1_ChannelYFP,A594_Seq0003 - Stitched.csv", sep=",")
 
 greenbackground = mean(b1_background$green.background...MedianIntensity)

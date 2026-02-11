@@ -21,8 +21,8 @@ outputdirectory <- "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/plots
 
 ```{r}
 #import data
-exp2180 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/t5224/VID2180.csv", header = TRUE)
-exp2181 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/t5224/VID2181.csv", header = TRUE)
+exp2180 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/t5224/VID2180.csv", header = TRUE)
+exp2181 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/t5224/VID2181.csv", header = TRUE)
 
 exp2180 <- exp2180 %>% dplyr::group_by(Name) %>% summarize(colony = n())
 exp2180$exp <- "exp2180"

@@ -9,7 +9,7 @@ library(gridExtra)
 
 
 # Load the data
-data <- fread("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/baselineflux/6d_VID2072_A1_baselineflux.csv")
+data <- fread("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/baselineflux/6d_VID2072_A1_baselineflux.csv")
 
 data <- data %>%
   mutate(

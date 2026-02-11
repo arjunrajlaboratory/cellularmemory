@@ -22,7 +22,7 @@ library(patchwork)
 
 ```{r}
 #barcode extraction and addition into metadata ----
-barcodes <- read_tsv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/rawData/10xfatemap/lineageBarcode/Analysis/stepThree/stepThreeStarcodeShavedReads.txt")
+barcodes <- read_tsv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/rawData/10xfatemap/lineageBarcode/Analysis/stepThree/stepThreeStarcodeShavedReads.txt")
 
 #remove barcodes sequenced multiple times (same cellID, same UMI, same barcode)
 barcodes_distinctUMI <- barcodes %>% group_by(cellID) %>% distinct(UMI, .keep_all=TRUE)
@@ -163,6 +163,8 @@ meta <- harmonized_seurat@meta.data
 umapCoordinates <- merge(umapCoordinates, meta, by=0, all=TRUE)
 write.table(umapCoordinates, file = "/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/10xfatemap/umapCoordinates.txt", row.names = TRUE, col.names = TRUE, sep='\t')  
   
+
+umapCoordinates <- read.table(file = "/Volumes/Jessi/fatemap/Rrex-fatemap/umapcoordinates.txt", header = TRUE)
 logNormalizedCounts <- read.table(file = "/Volumes/Jessi/fatemap/Rrex-fatemap/logNormalizedCounts.txt", header = TRUE)
 normalizedCounts <- read.table(file = "/Volumes/Jessi/fatemap/Rrex-fatemap/normalizedCounts.txt", header = TRUE)
 
@@ -294,6 +296,7 @@ testBC10 <- dplyr::filter(umapCoordinates, BC50StarcodeD8 == testBC10)
 testBC10plot <- umapCoordinates %>% ggplot(aes(x=umap_1, y=umap_2)) + geom_point(alpha=0.1) + geom_point(data=testBC10, aes(x=umap_1, y=umap_2), color='red', size=3)
 testBC10plot + facet_wrap(~condition, nrow=1)
 ```
+
 ```{r fig11, fig.height = 4, fig.width = 30}
 testBC11 <- "ATAGTAGTACGAGGAGGACTTCTTGGTGCTGTTGGACGAGGTCGTGTTCA"
 

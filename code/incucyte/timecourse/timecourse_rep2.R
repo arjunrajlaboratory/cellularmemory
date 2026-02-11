@@ -4,7 +4,7 @@ library(tidyverse)
 library(dplyr)
 
 # Set the path to the folder containing .tif files
-folder_path <- "/Users/jessi/Dropbox (RajLab)/Shared_JessL/paper/extractedData/incucyte/trametinibtimecourse/rep1" # Replace with your folder path
+folder_path <- "/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/trametinibtimecourse/rep2/endpoint" # Replace with your folder path
 
 # List all .tif files in the folder
 file_names <- list.files(folder_path, pattern = "\\.tif$", full.names = TRUE)
@@ -61,7 +61,7 @@ timecourseplot <- ggplot(file_info, aes(x = OrderedID, y = Column2, fill = Colum
 
 timecourseplot
 
-pdf("/Users/jessi/Dropbox (RajLab)/Shared_JessL/paper/plots/incucyte/timecourse/timecourserep1_colonycount.pdf", width=10, height=7)
+pdf("/Users/jessi/Dropbox (RajLab)/Shared_JessL/paper/plots/incucyte/timecourse/timecourserep2_colonycount.pdf", width=10, height=7)
 plot(timecourseplot)
 dev.off()
 

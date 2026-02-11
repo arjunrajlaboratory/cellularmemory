@@ -19,7 +19,7 @@ library(reshape2)
 ```
 
 ```{r}
-gcu <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/Data/WM989/incucyte/2528/GCU_forR.txt", header = TRUE, sep = "")
+gcu <- read.table("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/reportertest/acbd/GCU_forR.txt", header = TRUE, sep = "")
 
 # Convert to long format
 gcu <- melt(gcu, id.vars = "Elapsed")
@@ -38,7 +38,7 @@ gcuplot
 
 ```
 ```{r}
-rcu <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/Data/WM989/incucyte/2528/rcu_forR.txt", header = TRUE, sep = "")
+rcu <- read.table("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/reportertest/acbd/rcu_forR.txt", header = TRUE, sep = "")
 
 # Convert to long format
 rcu <- melt(rcu, id.vars = "Elapsed")
@@ -58,8 +58,8 @@ rcuplot
 
 ```{r}
 
-gcu <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/Data/WM989/incucyte/2528/GCU_forR.txt", header = TRUE, sep = "")
-rcu <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/Data/WM989/incucyte/2528/rcu_forR.txt", header = TRUE, sep = "")
+gcu <- read.table("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/reportertest/acbd/GCU_forR.txt", header = TRUE, sep = "")
+rcu <- read.table("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/reportertest/acbd/rcu_forR.txt", header = TRUE, sep = "")
 
 
 Gr_data_green <- dplyr::select(gcu, Elapsed, A2, B2, C2) %>% dplyr::filter(Elapsed < 60)

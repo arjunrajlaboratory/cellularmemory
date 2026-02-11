@@ -17,9 +17,9 @@ library(R.utils)
 ```
 
 ```{r}
-nosplit <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/colonysplitcontrol/nosplit_3dpre.csv", sep = ",", header = TRUE)
-postsplit <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/colonysplitcontrol/postsplit.csv", sep = ",", header = TRUE)
-postsplitsparse <- read.table("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/colonysplitcontrol/postsplit_b.csv", sep = ",", header = TRUE)
+nosplit <- read.table("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/colonysplitcontrol/nosplit_3dpre.csv", sep = ",", header = TRUE)
+postsplit <- read.table("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/colonysplitcontrol/postsplit.csv", sep = ",", header = TRUE)
+postsplitsparse <- read.table("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/incucyte/colonysplitcontrol/postsplit_b.csv", sep = ",", header = TRUE)
 
 lo <- nosplit %>% dplyr::filter(XY == 1) %>% group_by(Time) %>% summarise(count = n()) %>% mutate(treatment = "lo")
 lotohi <- nosplit %>% dplyr::filter(XY == 2) %>% group_by(Time) %>% summarise(count = n()) %>% mutate(treatment = "lotohi")

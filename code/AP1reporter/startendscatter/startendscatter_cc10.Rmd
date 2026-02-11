@@ -15,7 +15,7 @@ library(ggplot2)
 ```
 
 ```{r, warning=FALSE}
-datac2 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/VID2925_C2_recalc.csv")
+datac2 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/cc10/VID2925_C2_recalc.csv")
 
 startenddatac2 <- datac2
 startenddatac2 <- data.frame(lapply(startenddatac2[,c(2:55)], function(x) as.numeric(x)))
@@ -56,9 +56,9 @@ lineagedata_longc2$lineageId <- factor(lineagedata_longc2$lineageId)
 
 
 ```{r}
-dataa2 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/VID2925_a2_recalc.csv")
+data2 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/cc10/VID2925_a2_recalc.csv")
 
-startenddataa2 <- dataa2
+startenddataa2 <- data2
 startenddataa2 <- data.frame(lapply(startenddataa2[,c(2:49)], function(x) as.numeric(x)))
 
 startenddataa2 <- startenddataa2 %>% mutate(
@@ -96,7 +96,7 @@ lineagedata_longa2$lineageId <- factor(lineagedata_longa2$lineageId)
 
 
 ```{r}
-datab2 <- read.csv("/Users/jessi/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/VID2925_b2_recalc.csv")
+datab2 <- read.csv("/Users/jess/RajLab Dropbox/Jess Li/Shared_JessL/paper/extractedData/ap1reporter/starendscatter/cc10/VID2925_b2_recalc.csv")
 
 startenddatab2 <- datab2
 startenddatab2 <- data.frame(lapply(startenddatab2[,c(2:49)], function(x) as.numeric(x)))
